@@ -39,7 +39,7 @@ const navItems: {
   },
   {
     screen: "monthly-cards",
-    label: "Thẻ tháng của tôi",
+    label: "Thẻ của tôi",
     icon: CreditCard,
   },
   {
@@ -51,7 +51,7 @@ const navItems: {
 
 const breadcrumbMap: Record<UserScreen, string> = {
   dashboard: "Hồ sơ của tôi",
-  "monthly-cards": "Thẻ tháng của tôi",
+  "monthly-cards": "Thẻ của tôi",
   support: "Hỗ trợ",
 };
 

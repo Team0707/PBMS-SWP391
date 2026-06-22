@@ -43,28 +43,36 @@ function FakeQR({ value, size = 140 }: { value: string; size?: number }) {
 /* ── Types & data ────────────────────────────────────────────────── */
 interface MonthlyCard {
   id: number; cardNo: string; maThe: string; nhomThe: string;
-  loaiXe: string; bienSo: string; ngayDangKy: string; ngayHetHan: string;
+  loaiXe: string; ngayDangKy: string; ngayHetHan: string;
   tangGuiXe?: string;
   trangThai: "Hoạt động" | "Hết hạn" | "Sắp hết hạn"; soNgayConLai: number;
 }
 
 const initialCards: MonthlyCard[] = [
-  { id: 1, cardNo: "0002100001", maThe: "TM001", nhomThe: "THẺ THÁNG XE MÁY", loaiXe: "Xe máy", bienSo: "29X3-144.84", ngayDangKy: "2024-01-05", ngayHetHan: "2024-12-31", trangThai: "Hoạt động", soNgayConLai: 351 },
-  { id: 2, cardNo: "0002100005", maThe: "TM005", nhomThe: "THẺ THÁNG XE MÁY", loaiXe: "Xe máy", bienSo: "43A-999.11", ngayDangKy: "2023-12-01", ngayHetHan: "2024-01-10", trangThai: "Hết hạn",    soNgayConLai: -5 },
+  { id: 1, cardNo: "0002100001", maThe: "TM001", nhomThe: "THẺ THÁNG XE MÁY", loaiXe: "Xe máy", ngayDangKy: "2024-01-05", ngayHetHan: "2024-12-31", trangThai: "Hoạt động", soNgayConLai: 351 },
+  { id: 2, cardNo: "0002100005", maThe: "TM005", nhomThe: "THẺ THÁNG XE MÁY", loaiXe: "Xe máy", ngayDangKy: "2023-12-01", ngayHetHan: "2024-01-10", trangThai: "Hết hạn",    soNgayConLai: -5 },
 ];
 
 const PRICE_MAP: Record<string, number> = {
   "THẺ THÁNG XE MÁY": 100000,
-  "THẺ THÁNG Ô TÔ":   1000000,
+  "THẺ THÁNG Ô TÔ": 1000000,
+  "THẺ NGÀY XE MÁY": 10000,
+  "THẺ NGÀY Ô TÔ": 50000,
 };
 const RENEW_PRICE: Record<string, Record<number, number>> = {
   "THẺ THÁNG XE MÁY": { 1: 100000, 3: 280000, 6: 540000 },
-  "THẺ THÁNG Ô TÔ":   { 1: 1000000, 3: 2800000, 6: 5400000 },
+  "THẺ THÁNG Ô TÔ": { 1: 1000000, 3: 2800000, 6: 5400000 },
 };
 
 function addMonths(dateStr: string, months: number): string {
   const d = new Date(dateStr);
   d.setMonth(d.getMonth() + months);
+  return d.toISOString().split("T")[0];
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
   return d.toISOString().split("T")[0];
 }
 
@@ -118,22 +126,21 @@ function AddCardModal({ onSave, onClose }: {
     cardNo: "",
     maThe: "",
     nhomThe: "THẺ THÁNG XE MÁY",
-    bienSo: "",
     tangGuiXe: "",
   });
-  const [months, setMonths] = useState(1);
+  const [duration, setDuration] = useState(1);
   const [err, setErr] = useState("");
   const [savedData, setSavedData] = useState<Omit<MonthlyCard,"id"|"trangThai"|"soNgayConLai"> | null>(null);
   const F = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
-  const loaiXe =
-    form.nhomThe === "THẺ THÁNG Ô TÔ" ? "Ô tô" : "Xe máy";
+  const isDayCard = form.nhomThe.includes("NGÀY");
+  const loaiXe = form.nhomThe.includes("Ô TÔ") ? "Ô tô" : "Xe máy";
   const isOto = loaiXe === "Ô tô";
   const today = new Date().toISOString().split("T")[0];
-  const ngayHetHan = addMonths(today, months);
+  const ngayHetHan = isDayCard ? addDays(today, duration) : addMonths(today, duration);
 
   const handleNext = () => {
-    if (!form.cardNo.trim() || !form.maThe.trim() || !form.bienSo.trim()) { setErr("Vui lòng điền đầy đủ thông tin bắt buộc (*)"); return; }
+    if (!form.cardNo.trim() || !form.maThe.trim()) { setErr("Vui lòng điền đầy đủ thông tin bắt buộc (*)"); return; }
     if (isOto && !form.tangGuiXe) { setErr("Vui lòng chọn tầng gửi xe cho ô tô (*)"); return; }
     const data = {
       ...form,
@@ -151,7 +158,7 @@ function AddCardModal({ onSave, onClose }: {
   };
 
   const unitPrice = PRICE_MAP[form.nhomThe] ?? 100000;
-  const price = unitPrice * months;
+  const price = unitPrice * duration;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -159,7 +166,7 @@ function AddCardModal({ onSave, onClose }: {
         <div className="flex items-center justify-between px-5 py-3 bg-blue-600">
           <span className="text-white text-sm font-semibold flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            {step === "form" ? "Thêm thẻ tháng mới" : "Thanh toán"}
+            {step === "form" ? "Đăng kí thẻ" : "Thanh toán"}
           </span>
           <button onClick={onClose} className="text-white/80 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
@@ -199,6 +206,8 @@ function AddCardModal({ onSave, onClose }: {
                 >
                   <option>THẺ THÁNG XE MÁY</option>
                   <option>THẺ THÁNG Ô TÔ</option>
+                  <option>THẺ NGÀY XE MÁY</option>
+                  <option>THẺ NGÀY Ô TÔ</option>
                 </select>
 
                 <div className="mt-1.5 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
@@ -206,8 +215,6 @@ function AddCardModal({ onSave, onClose }: {
                   <span className="font-semibold">{loaiXe}</span>
                 </div>
               </div>
-              <div><label className="block text-xs text-gray-600 mb-1">Biển số <span className="text-red-500">*</span></label>
-                <input className="w-full h-[36px] border border-gray-300 rounded px-3 text-sm focus:outline-none focus:border-blue-400 uppercase placeholder:normal-case" placeholder="VD: 59A-123.45" value={form.bienSo} onChange={e => F("bienSo", e.target.value.toUpperCase())} /></div>
               {isOto && (
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">
@@ -226,18 +233,18 @@ function AddCardModal({ onSave, onClose }: {
               )}
               <div>
                 <label className="block text-xs text-gray-600 mb-1">
-                  Số tháng đăng ký
+                  {isDayCard ? "Số ngày đăng ký" : "Số tháng đăng ký"}
                 </label>
 
                 <select
                   className="w-full h-[36px] border border-gray-300 rounded px-3 text-sm bg-white focus:outline-none focus:border-blue-400"
-                  value={months}
-                  onChange={(e) => setMonths(Number(e.target.value))}
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
                 >
-                  {Array.from({ length: 12 }, (_, index) => index + 1).map(
-                    (month) => (
-                      <option key={month} value={month}>
-                        {month} tháng
+                  {Array.from({ length: isDayCard ? 29 : 12 }, (_, index) => index + 1).map(
+                    (value) => (
+                      <option key={value} value={value}>
+                        {value} {isDayCard ? "ngày" : "tháng"}
                       </option>
                     )
                   )}
@@ -248,7 +255,7 @@ function AddCardModal({ onSave, onClose }: {
                   <span>Ngày hết hạn:</span><span className="font-semibold">{ngayHetHan}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-blue-700">Tổng phí ({months} tháng):</span>
+                  <span className="text-xs text-blue-700">Tổng phí ({duration} {isDayCard ? "ngày" : "tháng"}):</span>
                   <span className="text-sm font-bold text-blue-800">{price.toLocaleString("vi-VN")} VNĐ</span>
                 </div>
               </div>
@@ -266,7 +273,7 @@ function AddCardModal({ onSave, onClose }: {
           <PaymentStep
             amount={price}
             label={`Đăng ký thẻ ${form.maThe} — ${form.nhomThe}`}
-            qrKey={`ADD-${form.maThe}-${form.bienSo}-${price}`}
+            qrKey={`ADD-${form.maThe}-${form.nhomThe}-${price}`}
             onDone={handleDone}
             onClose={onClose}
           />
@@ -303,7 +310,6 @@ function RenewModal({ card, onSave, onClose }: {
           <>
             <div className="p-5 space-y-4">
               <div className="bg-gray-50 border border-gray-200 rounded p-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500 text-xs">Biển số:</span><span className="font-bold">{card.bienSo}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500 text-xs">Nhóm thẻ:</span><span className="text-xs font-medium">{card.nhomThe}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500 text-xs">Hết hạn hiện tại:</span><span className="text-xs font-medium text-red-600">{card.ngayHetHan}</span></div>
               </div>
@@ -375,7 +381,6 @@ function DetailModal({ card, onClose }: { card: MonthlyCard; onClose: () => void
             ["Mã thẻ", card.maThe],
             ["Nhóm thẻ", card.nhomThe],
             ["Loại xe", card.loaiXe],
-            ["Biển số", card.bienSo],
             ...(card.loaiXe === "Ô tô" && card.tangGuiXe ? [["Tầng gửi xe", card.tangGuiXe]] : []),
             ["Ngày đăng ký", card.ngayDangKy],
             ["Ngày hết hạn", card.ngayHetHan],
@@ -434,7 +439,7 @@ export default function UserMonthlyCards() {
       <div className="bg-white border border-gray-200 rounded shadow-sm px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-blue-600" /><span className="text-sm font-semibold text-gray-700">Thẻ tháng của tôi</span></div>
         <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 h-[34px] px-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors">
-          <Plus className="w-3.5 h-3.5" />Thêm thẻ mới
+          <Plus className="w-3.5 h-3.5" />Đăng kí thẻ
         </button>
       </div>
 
@@ -458,8 +463,7 @@ export default function UserMonthlyCards() {
               </div>
               <StatusBadge card={card} />
             </div>
-            <div className={`px-4 py-3 grid gap-4 text-sm ${card.loaiXe === "Ô tô" && card.tangGuiXe ? "grid-cols-5" : "grid-cols-4"}`}>
-              <div><div className="text-xs text-gray-400 mb-0.5">Biển số</div><div className="font-bold text-gray-800">{card.bienSo}</div></div>
+            <div className={`px-4 py-3 grid gap-4 text-sm ${card.loaiXe === "Ô tô" && card.tangGuiXe ? "grid-cols-4" : "grid-cols-3"}`}>
               <div><div className="text-xs text-gray-400 mb-0.5">Loại xe</div>
                 <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${card.loaiXe==="Xe máy"?"bg-blue-100 text-blue-700":"bg-amber-100 text-amber-700"}`}>{card.loaiXe}</span>
               </div>
