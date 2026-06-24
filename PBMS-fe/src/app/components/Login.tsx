@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { User, Lock, Eye, EyeOff, ParkingSquare } from "lucide-react";
+import { User, Lock, Eye, EyeOff, ParkingSquare, Loader2 } from "lucide-react";
+import { authService } from "../../services/authService";
 
 export type UserRole = "admin" | "staff" | "user";
 
@@ -7,28 +8,35 @@ interface LoginProps {
   onLogin: (role: UserRole, name: string) => void;
 }
 
-const ACCOUNTS: { username: string; password: string; role: UserRole; name: string }[] = [
-  { username: "admin",   password: "admin",   role: "admin", name: "Quản trị hệ thống" },
-  { username: "staff01", password: "staff01", role: "staff", name: "Nhân viên 01" },
-  { username: "staff02", password: "staff02", role: "staff", name: "Nhân viên 02" },
-  { username: "user01",  password: "user01",  role: "user",  name: "Nguyễn Văn An" },
-  { username: "user02",  password: "user02",  role: "user",  name: "Trần Thị Bích" },
-];
-
 export default function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const account = ACCOUNTS.find(a => a.username === username && a.password === password);
-    if (account) {
-      onLogin(account.role, account.name);
-    } else {
-      setError("Tên đăng nhập hoặc mật khẩu không đúng.");
+    if (!username.trim() || !password.trim()) {
+      setError("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const user = await authService.login(username, password);
+      onLogin(user.role, user.name);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Có lỗi xảy ra trong quá trình đăng nhập.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,12 +68,13 @@ export default function Login({ onLogin }: LoginProps) {
               <label className="block text-xs text-gray-600 mb-1">Tên đăng nhập</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
+                 <input
                   type="text"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
+                  disabled={loading}
                   placeholder="Nhập tên đăng nhập"
-                  className="w-full h-[38px] border border-gray-300 rounded pl-9 pr-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  className="w-full h-[38px] border border-gray-300 rounded pl-9 pr-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -78,13 +87,15 @@ export default function Login({ onLogin }: LoginProps) {
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  disabled={loading}
                   placeholder="Nhập mật khẩu"
-                  className="w-full h-[38px] border border-gray-300 rounded pl-9 pr-9 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  className="w-full h-[38px] border border-gray-300 rounded pl-9 pr-9 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={loading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                 >
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -97,18 +108,27 @@ export default function Login({ onLogin }: LoginProps) {
                 id="remember"
                 checked={remember}
                 onChange={e => setRemember(e.target.checked)}
-                className="cursor-pointer"
+                disabled={loading}
+                className="cursor-pointer disabled:cursor-not-allowed"
               />
-              <label htmlFor="remember" className="text-xs text-gray-600 cursor-pointer">
+              <label htmlFor="remember" className="text-xs text-gray-600 cursor-pointer disabled:cursor-not-allowed">
                 Ghi nhớ đăng nhập
               </label>
             </div>
 
             <button
               type="submit"
-              className="w-full h-[40px] bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors mt-1"
+              disabled={loading}
+              className="w-full h-[40px] bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded transition-colors mt-1 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              Đăng nhập
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Đang đăng nhập...
+                </>
+              ) : (
+                "Đăng nhập"
+              )}
             </button>
           </form>
 

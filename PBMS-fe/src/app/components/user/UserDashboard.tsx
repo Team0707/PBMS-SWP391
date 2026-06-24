@@ -16,7 +16,9 @@ import {
   AlertCircle,
   ShieldCheck,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
+import { authService } from "../../../services/authService";
 
 interface UserDashboardProps {
   userName: string;
@@ -55,6 +57,7 @@ export default function UserDashboard({
 }: UserDashboardProps) {
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [form, setForm] = useState<Profile>(initialProfile);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   // Xác nhận mật khẩu hiện tại
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -78,6 +81,28 @@ export default function UserDashboard({
 
   // Đồng hồ
   const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await authService.getProfile();
+        const formattedProfile: Profile = {
+          hoTen: data.fullName,
+          email: data.email,
+          soDienThoai: data.phone,
+          diaChi: data.address || "",
+          ngayDangKy: data.createdAt ? new Date(data.createdAt).toLocaleDateString("vi-VN") : "15/03/2023",
+        };
+        setProfile(formattedProfile);
+        setForm(formattedProfile);
+      } catch (err) {
+        console.error("Error loading user profile", err);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -144,31 +169,8 @@ export default function UserDashboard({
     setCurrentPasswordError("");
 
     try {
-      /*
-        Khi có backend, thay phần demo bằng API:
-
-        const response = await fetch("/api/users/confirm-password", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            password: currentPassword,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Mật khẩu không chính xác.");
-        }
-      */
-
-      await new Promise((resolve) => setTimeout(resolve, 400));
-
-      if (currentPassword !== DEMO_CURRENT_PASSWORD) {
-        setCurrentPasswordError("Mật khẩu không chính xác.");
-        return;
-      }
+      const username = localStorage.getItem("username") || "";
+      await authService.login(username, currentPassword);
 
       setShowConfirmPassword(false);
       setCurrentPassword("");
@@ -176,11 +178,7 @@ export default function UserDashboard({
 
       openEditForm();
     } catch (error) {
-      setCurrentPasswordError(
-        error instanceof Error
-          ? error.message
-          : "Không thể xác nhận mật khẩu."
-      );
+      setCurrentPasswordError("Mật khẩu không chính xác.");
     } finally {
       setCheckingPassword(false);
     }
@@ -253,37 +251,24 @@ export default function UserDashboard({
     }
 
     try {
-      /*
-        Khi có backend:
-
-        const response = await fetch("/api/users/profile", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            hoTen: form.hoTen,
-            email: form.email,
-            soDienThoai: form.soDienThoai,
-            diaChi: form.diaChi,
-            newPassword: newPassword || null,
-            confirmNewPassword: confirmNewPassword || null,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Không thể cập nhật hồ sơ.");
-        }
-      */
-
-      setProfile({
-        ...form,
-        hoTen: form.hoTen.trim(),
-        email: form.email.trim(),
-        soDienThoai: form.soDienThoai.trim(),
-        diaChi: form.diaChi.trim(),
+      const updatedData = await authService.updateProfile({
+        fullName: form.hoTen,
+        email: form.email,
+        phone: form.soDienThoai,
+        address: form.diaChi,
+        newPassword: newPassword || undefined
       });
+
+      const formattedProfile: Profile = {
+        hoTen: updatedData.fullName,
+        email: updatedData.email,
+        soDienThoai: updatedData.phone,
+        diaChi: updatedData.address || "",
+        ngayDangKy: updatedData.createdAt ? new Date(updatedData.createdAt).toLocaleDateString("vi-VN") : "15/03/2023",
+      };
+
+      setProfile(formattedProfile);
+      setForm(formattedProfile);
 
       setShowEdit(false);
       setNewPassword("");
@@ -296,6 +281,7 @@ export default function UserDashboard({
       }, 2500);
     } catch (error) {
       console.error(error);
+      alert(error instanceof Error ? error.message : "Không thể cập nhật hồ sơ.");
     }
   };
 
@@ -313,6 +299,14 @@ export default function UserDashboard({
       [field]: undefined,
     }));
   };
+
+  if (loadingProfile) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-3">

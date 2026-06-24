@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Login, { UserRole } from "./components/Login";
 import Layout, { Screen } from "./components/Layout";
+import { authService } from "../services/authService";
 import Dashboard from "./components/Dashboard";
 import VehicleEntryExit from "./components/reports/VehicleEntryExit";
 import AlertEvents from "./components/reports/AlertEvents";
@@ -40,23 +41,30 @@ interface AuthState {
 }
 
 export default function App() {
-  const [auth, setAuth] = useState<AuthState | null>(null);
+  const [auth, setAuth] = useState<AuthState | null>(() => {
+    return authService.getCurrentUser();
+  });
   const [screen, setScreen] = useState<Screen>("dashboard");
+
+  const handleLogout = () => {
+    authService.logout();
+    setAuth(null);
+  };
 
   if (!auth) {
     return <Login onLogin={(role, name) => setAuth({ role, name })} />;
   }
 
   if (auth.role === "staff") {
-    return <StaffApp staffName={auth.name} onLogout={() => setAuth(null)} />;
+    return <StaffApp staffName={auth.name} onLogout={handleLogout} />;
   }
 
   if (auth.role === "user") {
-    return <UserApp userName={auth.name} onLogout={() => setAuth(null)} />;
+    return <UserApp userName={auth.name} onLogout={handleLogout} />;
   }
 
   return (
-    <Layout currentScreen={screen} onNavigate={setScreen} onLogout={() => setAuth(null)}>
+    <Layout currentScreen={screen} onNavigate={setScreen} onLogout={handleLogout}>
       {renderScreen(screen, auth.name)}
     </Layout>
   );
