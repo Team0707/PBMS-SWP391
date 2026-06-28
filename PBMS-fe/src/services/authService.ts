@@ -152,6 +152,65 @@ export const authService = {
     if (!response.ok) {
       throw new Error(result.message || "Mat khau hien tai khong chinh xac.");
     }
+  },
+
+  async register(payload: any): Promise<void> {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result: ApiResponse<any> = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "Có lỗi xảy ra khi đăng ký.");
+    }
+  },
+
+  async verifyEmail(token: string): Promise<void> {
+    const response = await fetch(`${API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const result: ApiResponse<any> = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "Xác thực email thất bại.");
+    }
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const result: ApiResponse<any> = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "Có lỗi xảy ra.");
+    }
+  },
+
+  async resetPassword(payload: any): Promise<void> {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result: ApiResponse<any> = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "Đặt lại mật khẩu thất bại.");
+    }
   }
 };
 

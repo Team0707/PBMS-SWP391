@@ -69,6 +69,45 @@ public class JwtService {
                 .getPayload();
     }
 
+    public String generateVerificationToken(String username) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + 86400000L); // 24 hours
+
+        return Jwts.builder()
+                .subject(username)
+                .claim("purpose", "verification")
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String generateResetPasswordToken(String username) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + 900000L); // 15 minutes
+
+        return Jwts.builder()
+                .subject(username)
+                .claim("purpose", "reset-password")
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String extractUsernameAndVerifyPurpose(String token, String expectedPurpose) {
+        try {
+            Claims claims = extractAllClaims(token);
+            String purpose = claims.get("purpose", String.class);
+            if (purpose == null || !purpose.equals(expectedPurpose)) {
+                throw new RuntimeException("Token không đúng mục đích sử dụng.");
+            }
+            return claims.getSubject();
+        } catch (Exception e) {
+            throw new RuntimeException("Token không hợp lệ hoặc đã hết hạn.");
+        }
+    }
+
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);

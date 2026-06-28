@@ -628,7 +628,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Accounts WHERE Username = 'staff02')
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Accounts WHERE Username = 'user01')
     INSERT dbo.Accounts(RoleID, Username, PasswordHash, FullName, Email, Phone, Address, Status)
-    SELECT RoleID, 'user01', @PasswordHash, N'Nguyễn Văn An', 'user01@gmail.com', '0901234567', N'123 Lê Lợi, Quận 1, TP. Hồ Chí Minh', 'ACTIVE'
+    SELECT RoleID, 'user01', @PasswordHash, N'Nguyễn Văn An', 'khoiotaku1907@gmail.com', '0901234567', N'123 Lê Lợi, Quận 1, TP. Hồ Chí Minh', 'ACTIVE'
     FROM dbo.Roles WHERE RoleName = 'USER';
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Accounts WHERE Username = 'user02')
@@ -679,7 +679,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Staff sp JOIN dbo.Accounts a ON a.AccountID = s
     WHERE a.Username = 'staff02';
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Customers WHERE Email = 'user01@gmail.com')
+IF NOT EXISTS (SELECT 1 FROM dbo.Customers WHERE Email = 'khoiotaku1907@gmail.com')
     INSERT dbo.Customers(AccountID, FullName, Phone, Email, Address, Status)
     SELECT AccountID, FullName, Phone, Email, Address, 'ACTIVE' FROM dbo.Accounts WHERE Username = 'user01';
 
@@ -698,7 +698,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.[User] up JOIN dbo.Accounts a ON a.AccountID = 
         a.AccountID,
         c.CustomerID,
         COALESCE(a.FullName, c.FullName, N'Nguyễn Văn An'),
-        COALESCE(a.Email, c.Email, 'user01@gmail.com'),
+        COALESCE(a.Email, c.Email, 'khoiotaku1907@gmail.com'),
         COALESCE(a.Phone, c.Phone, '0901234567'),
         COALESCE(a.Address, c.Address, N'123 Lê Lợi, Quận 1, TP. Hồ Chí Minh'),
         COALESCE(a.Status, 'ACTIVE')
@@ -723,11 +723,11 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '29X1-123.45')
     INSERT dbo.Vehicles(CustomerID, PlateNo, VehicleType, Brand, Color)
-    SELECT CustomerID, '29X1-123.45', 'MOTORCYCLE', N'Honda', N'Đen' FROM dbo.Customers WHERE Email = 'user01@gmail.com';
+    SELECT CustomerID, '29X1-123.45', 'MOTORCYCLE', N'Honda', N'Đen' FROM dbo.Customers WHERE Email = 'khoiotaku1907@gmail.com';
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '51A-123.45')
     INSERT dbo.Vehicles(CustomerID, PlateNo, VehicleType, Brand, Color)
-    SELECT CustomerID, '51A-123.45', 'CAR', N'Toyota', N'Trắng' FROM dbo.Customers WHERE Email = 'user01@gmail.com';
+    SELECT CustomerID, '51A-123.45', 'CAR', N'Toyota', N'Trắng' FROM dbo.Customers WHERE Email = 'khoiotaku1907@gmail.com';
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '43A-999.11')
     INSERT dbo.Vehicles(CustomerID, PlateNo, VehicleType, Brand, Color)

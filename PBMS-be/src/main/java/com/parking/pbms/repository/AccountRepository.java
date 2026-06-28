@@ -12,4 +12,8 @@ public interface AccountRepository extends JpaRepository<Account, Integer> {
     Optional<Account> findByUsernameIgnoreCase(String username);
 
     boolean existsByUsernameIgnoreCase(String username);
+
+    Optional<Account> findByEmailIgnoreCase(String email);
+
+    boolean existsByEmailIgnoreCase(String email);
 }

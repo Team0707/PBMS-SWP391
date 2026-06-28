@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Login, { UserRole } from "./components/Login";
 import Layout, { Screen } from "./components/Layout";
 import { authService } from "../services/authService";
@@ -45,6 +45,34 @@ export default function App() {
     return authService.getCurrentUser();
   });
   const [screen, setScreen] = useState<Screen>("dashboard");
+  const [verifyStatus, setVerifyStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifyTokenParam = params.get("verifyToken");
+    const resetTokenParam = params.get("resetToken");
+
+    if (verifyTokenParam) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      authService.verifyEmail(verifyTokenParam)
+        .then(() => {
+          setVerifyStatus({
+            success: true,
+            message: "Xác thực tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ."
+          });
+        })
+        .catch((err) => {
+          setVerifyStatus({
+            success: false,
+            message: err.message || "Xác thực email thất bại hoặc liên kết đã hết hạn."
+          });
+        });
+    } else if (resetTokenParam) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setResetToken(resetTokenParam);
+    }
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
@@ -52,7 +80,15 @@ export default function App() {
   };
 
   if (!auth) {
-    return <Login onLogin={(role, name) => setAuth({ role, name })} />;
+    return (
+      <Login
+        onLogin={(role, name) => setAuth({ role, name })}
+        initialVerifyStatus={verifyStatus}
+        initialResetToken={resetToken}
+        onClearVerifyStatus={() => setVerifyStatus(null)}
+        onClearResetToken={() => setResetToken(null)}
+      />
+    );
   }
 
   if (auth.role === "staff") {
