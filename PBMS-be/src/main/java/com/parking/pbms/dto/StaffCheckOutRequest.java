@@ -7,5 +7,8 @@ public record StaffCheckOutRequest(
         String ticketNoOrQrToken,
 
         @NotBlank(message = "Mã làn không được để trống")
-        String laneCode
+        String laneCode,
+
+        // Phuong thuc thanh toan: CASH hoac VNPAY (optional, default = VNPAY)
+        String paymentMethod
 ) {}

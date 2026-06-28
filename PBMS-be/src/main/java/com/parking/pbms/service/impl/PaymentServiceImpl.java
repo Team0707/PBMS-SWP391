@@ -65,11 +65,13 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             // 2. Tạo URL VNPay
             long amount = totalAmount.longValue();
+            String ip = (request.getIpAddr() != null && !request.getIpAddr().isBlank())
+                    ? request.getIpAddr() : "127.0.0.1";
             String paymentUrl = vnPayConfig.createPaymentUrl(
                     orderCode,
                     amount,
                     "ThanhToanVeXe_" + ticket.getTicketId(),
-                    "127.0.0.1"
+                    ip
             );
 
             // 5. Trả kết quả về cho Frontend
@@ -86,6 +88,45 @@ public class PaymentServiceImpl implements PaymentService {
             log.error("Lỗi khi tạo payment link trên VNPay", e);
             throw new RuntimeException("Không thể tạo giao dịch VNPay");
         }
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponse createCashPayment(Long ticketId) {
+        ParkingTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found: " + ticketId));
+
+        BigDecimal fee = ticket.getFeeAmount() != null ? ticket.getFeeAmount() : BigDecimal.ZERO;
+        BigDecimal penalty = ticket.getPenaltyAmount() != null ? ticket.getPenaltyAmount() : BigDecimal.ZERO;
+        BigDecimal totalAmount = fee.add(penalty);
+
+        // Tao Payment record voi trang thai PAID ngay (khong qua cong thanh toan)
+        Payment payment = Payment.builder()
+                .ticketId(ticket.getTicketId())
+                .amount(totalAmount)
+                .paymentMethod("CASH")
+                .paymentType("PARKING_FEE")
+                .referenceCode("CASH_" + ticket.getTicketId() + "_" + System.currentTimeMillis())
+                .status("PAID")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .paidAt(LocalDateTime.now())
+                .build();
+        payment = paymentRepository.save(payment);
+
+        // Cap nhat trang thai ticket thanh PAID
+        ticket.setStatus("PAID");
+        ticketRepository.save(ticket);
+
+        log.info("[CASH] Ticket {} da duoc thanh toan tien mat. Tong: {}", ticketId, totalAmount);
+
+        return PaymentResponse.builder()
+                .paymentId(payment.getPaymentId())
+                .ticketId(payment.getTicketId())
+                .amount(payment.getAmount())
+                .description(payment.getReferenceCode())
+                .status(payment.getStatus())
+                .build();
     }
 
     @Override

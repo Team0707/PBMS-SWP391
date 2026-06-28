@@ -35,6 +35,7 @@ export interface StaffCheckOutRequest {
   ticketNoOrQrToken: string;
   laneCode: string;
   floorCode?: string;
+  paymentMethod?: "CASH" | "VNPAY";
 }
 
 export interface StaffTicketResponse {

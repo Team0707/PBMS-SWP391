@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
+  Banknote,
   CheckCircle2,
-  Clock,
+  CreditCard,
+  Loader2,
   QrCode,
   X,
 } from "lucide-react";
-import { staffService } from "../../../services/staffService";
+import { authService } from "../../../services/authService";
+import { QRCodeSVG } from "qrcode.react";
 
-// ─── Cấu hình tài khoản nhận tiền thực tế của bãi xe ─────────────────────────
-const VIETQR_BANK_BIN = "970422";                  // Mã BIN ngân hàng: VPBank
-const VIETQR_ACCOUNT_NO = "0334804297";            // Số tài khoản nhận tiền
-const VIETQR_TEMPLATE_ID = "btat8lf";              // Template ID VietQR cá nhân
-const VIETQR_ACCOUNT_NAME = "BAI DO XE PBMS";      // Tên chủ tài khoản viết hoa không dấu
-const QR_EXPIRE_SECONDS = 5 * 60;                  // Thời hạn mã QR: 5 phút
-// ─────────────────────────────────────────────────────────────────────────────
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type PaymentMethod = "VNPAY" | "CASH";
+type PaymentStep = "select" | "processing" | "vnpay_qr" | "success" | "failed";
 
 export interface PaymentModalProps {
   isOpen: boolean;
@@ -29,15 +30,23 @@ export interface PaymentModalProps {
   feeAmount: number;
 }
 
-type PaymentStatus = "pending" | "paid" | "expired";
-
-
-function formatCountdown(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
+// ─── Helper ───────────────────────────────────────────────────────────────────
+async function apiFetch(path: string, body?: object) {
+  const token = authService.getToken();
+  const res = await fetch(`${API_URL}${path}`, {
+    method: body ? "POST" : "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "API error");
+  return json.data;
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function PaymentModal({
   isOpen,
   onClose,
@@ -50,68 +59,41 @@ export default function PaymentModal({
   checkOutAt,
   feeAmount,
 }: PaymentModalProps) {
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("pending");
-  const [secondsLeft, setSecondsLeft] = useState(QR_EXPIRE_SECONDS);
-  const [closeCountdown, setCloseCountdown] = useState(2);
+  const [method, setMethod] = useState<PaymentMethod>("VNPAY");
+  const [step, setStep] = useState<PaymentStep>("select");
+  const [vnpayUrl, setVnpayUrl] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [closeCountdown, setCloseCountdown] = useState(3);
 
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoCloseRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clearTimers = () => {
-    if (countdownRef.current) clearInterval(countdownRef.current);
     if (pollRef.current) clearInterval(pollRef.current);
     if (autoCloseRef.current) clearInterval(autoCloseRef.current);
-    countdownRef.current = null;
     pollRef.current = null;
     autoCloseRef.current = null;
   };
 
-  // Khởi tạo / dọn dẹp khi modal mở / đóng
+  // Reset khi dong / mo modal
   useEffect(() => {
     if (!isOpen) {
       clearTimers();
       return;
     }
-
-    setPaymentStatus("pending");
-    setSecondsLeft(QR_EXPIRE_SECONDS);
-    setCloseCountdown(2);
-
-    // Đếm ngược thời hạn mã QR (1 giây / lần)
-    countdownRef.current = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearTimers();
-          setPaymentStatus("expired");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1_000);
-
-    // Polling kiểm tra trạng thái thanh toán (3 giây / lần)
-    pollRef.current = setInterval(async () => {
-      try {
-        const result = await staffService.checkPaymentStatus(ticketId);
-        if (result === "PAID") {
-          clearTimers();
-          setPaymentStatus("paid");
-        }
-      } catch {
-        // Bỏ qua lỗi mạng tạm thời trong quá trình polling
-      }
-    }, 3_000);
-
+    setStep("select");
+    setMethod("VNPAY");
+    setVnpayUrl(null);
+    setErrorMsg(null);
+    setCloseCountdown(3);
     return () => clearTimers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, ticketId]);
+  }, [isOpen]);
 
-  // Tự động đóng modal sau khi thanh toán thành công
+  // Auto-close sau khi thanh toan thanh cong
   useEffect(() => {
-    if (paymentStatus !== "paid") return;
-
-    setCloseCountdown(2);
+    if (step !== "success") return;
+    setCloseCountdown(3);
     autoCloseRef.current = setInterval(() => {
       setCloseCountdown((prev) => {
         if (prev <= 1) {
@@ -123,196 +105,286 @@ export default function PaymentModal({
         return prev - 1;
       });
     }, 1_000);
-
     return () => {
       if (autoCloseRef.current) clearInterval(autoCloseRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentStatus]);
+  }, [step]);
+
+  // Xu ly khi bam xac nhan
+  const handleConfirm = async () => {
+    setErrorMsg(null);
+    setStep("processing");
+    try {
+      if (method === "CASH") {
+        await apiFetch("/staff/checkout-payment", {
+          ticketId,
+          paymentMethod: "CASH",
+        });
+        setStep("success");
+      } else {
+        // VNPay: lay link thanh toan
+        const data = await apiFetch("/staff/checkout-payment", {
+          ticketId,
+          paymentMethod: "VNPAY",
+          ipAddr: "127.0.0.1",
+        });
+        setVnpayUrl(data.checkoutUrl);
+        setStep("vnpay_qr");
+
+        // Bat dau polling kiem tra trang thai sau khi hien QR
+        let pollCount = 0;
+        const MAX_POLLS = 30; // 30 x 4s = 2 phut
+        pollRef.current = setInterval(async () => {
+          pollCount++;
+          try {
+            const status = await apiFetch(`/staff/payment-status/${ticketId}`);
+            if (status === "PAID") {
+              clearTimers();
+              setStep("success");
+            } else if (status === "CANCELLED" || status === "FAILED") {
+              clearTimers();
+              setErrorMsg("Giao dịch đã bị hủy hoặc thất bại.");
+              setStep("failed");
+            } else if (pollCount >= MAX_POLLS) {
+              clearTimers();
+              setErrorMsg("Hết thời gian chờ thanh toán (2 phút). Vui lòng thử lại.");
+              setStep("failed");
+            }
+          } catch {
+            // bo qua loi mang tam thoi
+          }
+        }, 4_000);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Lỗi không xác định");
+      setStep("failed");
+    }
+  };
 
   if (!isOpen) return null;
 
   const checkInFormatted = new Date(checkInAt).toLocaleString("vi-VN");
   const checkOutFormatted = new Date(checkOutAt).toLocaleString("vi-VN");
-  const isWarning = secondsLeft <= 60 && paymentStatus === "pending";
+
+  // ── Ticket Info Block ──────────────────────────────────────────────────────
+  const TicketInfo = () => (
+    <div className="grid grid-cols-2 gap-y-1.5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-[12px]">
+      <span className="text-gray-500">Mã vé:</span>
+      <span className="text-right font-bold text-gray-800">{ticketNo}</span>
+      <span className="text-gray-500">Biển số xe:</span>
+      <span className="text-right font-bold text-gray-800">{plateNo}</span>
+      <span className="text-gray-500">Loại xe:</span>
+      <span className="text-right font-medium text-gray-700">
+        {vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
+      </span>
+      <span className="text-gray-500">Giờ vào:</span>
+      <span className="text-right font-medium text-gray-700">{checkInFormatted}</span>
+      <span className="text-gray-500">Giờ ra:</span>
+      <span className="text-right font-medium text-gray-700">{checkOutFormatted}</span>
+    </div>
+  );
+
+  // ── Fee Block ──────────────────────────────────────────────────────────────
+  const FeeBlock = () => (
+    <div className="rounded-xl bg-blue-600 py-3 text-center">
+      <p className="text-xs text-blue-200">Tổng phí thanh toán</p>
+      <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-white">
+        {feeAmount.toLocaleString("vi-VN")}{" "}
+        <span className="text-base font-semibold">VNĐ</span>
+      </p>
+    </div>
+  );
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label="Thanh toán qua VietQR"
     >
       <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between bg-blue-600 px-5 py-3.5">
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div
+          className={`flex items-center justify-between px-5 py-3.5 ${
+            step === "success" ? "bg-green-600" : step === "failed" ? "bg-red-500" : "bg-blue-600"
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <QrCode className="h-5 w-5 text-white" />
+            {step === "success" ? (
+              <CheckCircle2 className="h-5 w-5 text-white" />
+            ) : step === "vnpay_qr" ? (
+              <QrCode className="h-5 w-5 text-white" />
+            ) : (
+              <CreditCard className="h-5 w-5 text-white" />
+            )}
             <span className="text-base font-semibold text-white">
-              Thanh toán qua VietQR
+              {step === "success"
+                ? "Thanh toán thành công!"
+                : step === "failed"
+                ? "Giao dịch thất bại"
+                : step === "vnpay_qr"
+                ? "Quét mã VNPay"
+                : "Xác nhận thanh toán"}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              clearTimers();
-              onClose();
-            }}
-            className="rounded-full p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-            aria-label="Đóng"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* ── Body ── */}
-        {paymentStatus === "paid" ? (
-          /* Thanh toán thành công */
-          <div className="flex flex-col items-center px-6 py-10 text-center">
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
-            </div>
-            <h2 className="text-xl font-bold text-green-700">
-              Thanh toán thành công!
-            </h2>
-            <p className="mt-2 text-sm text-gray-500">
-              Xe{" "}
-              <span className="font-semibold text-gray-800">{plateNo}</span> đã
-              thanh toán{" "}
-              <span className="font-semibold text-blue-600">
-                {feeAmount.toLocaleString("vi-VN")} VNĐ
-              </span>{" "}
-              thành công.
-            </p>
-            <p className="mt-5 text-xs text-gray-400">
-              Tự động đóng sau{" "}
-              <span className="font-semibold text-gray-600">
-                {closeCountdown}
-              </span>{" "}
-              giây...
-            </p>
-          </div>
-        ) : paymentStatus === "expired" ? (
-          /* Mã QR hết hạn */
-          <div className="flex flex-col items-center px-6 py-10 text-center">
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-orange-100">
-              <AlertCircle className="h-12 w-12 text-orange-500" />
-            </div>
-            <h2 className="text-xl font-bold text-orange-700">
-              Mã QR đã hết hạn
-            </h2>
-            <p className="mt-2 text-sm text-gray-500">
-              Mã QR đã quá thời hạn 5 phút. Vui lòng đóng và thử lại.
-            </p>
+          {step !== "processing" && (
             <button
               type="button"
-              onClick={() => {
-                clearTimers();
-                onClose();
-              }}
-              className="mt-6 rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              onClick={() => { clearTimers(); onClose(); }}
+              className="rounded-full p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+              aria-label="Đóng"
             >
-              Đóng &amp; Thử lại
+              <X className="h-4 w-4" />
             </button>
-          </div>
-        ) : (
-          /* Đang chờ thanh toán */
-          <div className="space-y-4 px-5 py-4">
-            {/* Thông tin vé */}
-            <div className="grid grid-cols-2 gap-y-1.5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-[12px]">
-              <span className="text-gray-500">Mã vé:</span>
-              <span className="text-right font-bold text-gray-800">
-                {ticketNo}
-              </span>
-              <span className="text-gray-500">Biển số xe:</span>
-              <span className="text-right font-bold text-gray-800">
-                {plateNo}
-              </span>
-              <span className="text-gray-500">Loại xe:</span>
-              <span className="text-right font-medium text-gray-700">
-                {vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
-              </span>
-              <span className="text-gray-500">Giờ vào:</span>
-              <span className="text-right font-medium text-gray-700">
-                {checkInFormatted}
-              </span>
-              <span className="text-gray-500">Giờ ra:</span>
-              <span className="text-right font-medium text-gray-700">
-                {checkOutFormatted}
-              </span>
-            </div>
+          )}
+        </div>
 
-            {/* Số tiền */}
-            <div className="rounded-xl bg-blue-600 py-3 text-center">
-              <p className="text-xs text-blue-200">Tổng phí thanh toán</p>
-              <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-white">
-                {feeAmount.toLocaleString("vi-VN")}{" "}
-                <span className="text-base font-semibold">VNĐ</span>
-              </p>
-            </div>
+        {/* ── Body ───────────────────────────────────────────────────────── */}
+        <div className="space-y-4 px-5 py-4">
 
-            {/* QR Code */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="rounded-xl border-2 border-blue-100 bg-white p-3 shadow-inner">
-                <img
-                  src={`https://api.vietqr.io/image/${VIETQR_BANK_BIN}-${VIETQR_ACCOUNT_NO}-${VIETQR_TEMPLATE_ID}.jpg?amount=${Math.round(feeAmount)}&addInfo=${encodeURIComponent(`Thanh toan ve xe ${ticketNo}`)}`}
-                  alt="Mã QR VietQR"
-                  className="h-[200px] w-[200px] object-contain"
-                  draggable={false}
-                />
+          {/* STEP: SELECT METHOD */}
+          {step === "select" && (
+            <>
+              <TicketInfo />
+              <FeeBlock />
+
+              {/* Chon phuong thuc thanh toan */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Phương thức thanh toán
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setMethod("VNPAY")}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-3 text-sm font-semibold transition-all ${
+                      method === "VNPAY"
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 text-gray-600 hover:border-blue-300"
+                    }`}
+                  >
+                    <QrCode className="h-5 w-5" />
+                    VNPay QR
+                  </button>
+                  <button
+                    onClick={() => setMethod("CASH")}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 py-3 text-sm font-semibold transition-all ${
+                      method === "CASH"
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                        : "border-gray-200 text-gray-600 hover:border-emerald-300"
+                    }`}
+                  >
+                    <Banknote className="h-5 w-5" />
+                    Tiền mặt
+                  </button>
+                </div>
               </div>
+
+              {/* Description */}
               <p className="text-center text-[11px] text-gray-400">
-                Quét mã bằng App ngân hàng để thanh toán
+                {method === "CASH"
+                  ? "✅ Xác nhận nhận tiền mặt từ khách → hệ thống cập nhật ngay"
+                  : "📱 Tạo mã QR VNPay → khách quét bằng app ngân hàng"}
+              </p>
+
+              {/* Confirm button */}
+              <button
+                onClick={handleConfirm}
+                className={`w-full rounded-lg py-2.5 text-sm font-bold text-white transition-colors ${
+                  method === "CASH"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {method === "CASH" ? "✅ Xác nhận đã thu tiền mặt" : "📱 Tạo mã QR VNPay"}
+              </button>
+            </>
+          )}
+
+          {/* STEP: PROCESSING */}
+          {step === "processing" && (
+            <div className="flex flex-col items-center py-10 gap-4">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+              <p className="text-sm font-medium text-gray-600">Đang xử lý...</p>
+            </div>
+          )}
+
+          {/* STEP: VNPAY QR */}
+          {step === "vnpay_qr" && vnpayUrl && (
+            <>
+              <TicketInfo />
+              <FeeBlock />
+              <div className="flex flex-col items-center gap-3">
+                <div className="rounded-xl border-2 border-blue-100 bg-white p-3 shadow-inner">
+                  <QRCodeSVG value={vnpayUrl} size={200} />
+                </div>
+                <p className="text-center text-[11px] text-gray-400">
+                  Quét mã QR bằng App ngân hàng / ví điện tử để thanh toán
+                </p>
+                <button
+                  onClick={() => { window.open(vnpayUrl, "_blank"); }}
+                  className="text-xs text-blue-600 underline hover:text-blue-800"
+                >
+                  Hoặc mở trang VNPay
+                </button>
+              </div>
+              <div className="flex items-center justify-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
+                <span className="text-xs font-medium text-blue-600">
+                  Đang chờ xác nhận thanh toán...
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* STEP: SUCCESS */}
+          {step === "success" && (
+            <div className="flex flex-col items-center py-8 gap-3 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle2 className="h-12 w-12 text-green-500" />
+              </div>
+              <h2 className="text-xl font-bold text-green-700">
+                {method === "CASH"
+                  ? "Đã xác nhận thanh toán tiền mặt!"
+                  : "Thanh toán VNPay thành công!"}
+              </h2>
+              <p className="text-sm text-gray-500">
+                Xe{" "}
+                <span className="font-semibold text-gray-800">{plateNo}</span>{" "}
+                đã thanh toán{" "}
+                <span className="font-semibold text-blue-600">
+                  {feeAmount.toLocaleString("vi-VN")} VNĐ
+                </span>{" "}
+                thành công.
+              </p>
+              {method === "CASH" && (
+                <p className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded px-3 py-1.5">
+                  Thẻ đã được kích hoạt trong hệ thống.
+                </p>
+              )}
+              <p className="mt-2 text-xs text-gray-400">
+                Tự động đóng sau{" "}
+                <span className="font-semibold text-gray-600">{closeCountdown}</span> giây...
               </p>
             </div>
+          )}
 
-            {/* Đồng hồ đếm ngược */}
-            <div
-              className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 ${
-                isWarning
-                  ? "border-red-200 bg-red-50 text-red-600"
-                  : "border-blue-100 bg-blue-50 text-blue-600"
-              }`}
-            >
-              <Clock className="h-3.5 w-3.5 shrink-0" />
-              <span className="text-xs font-medium">
-                {isWarning ? "Sắp hết hạn! " : "Mã QR hết hạn sau: "}
-                <span className="font-mono font-bold tabular-nums">
-                  {formatCountdown(secondsLeft)}
-                </span>
-              </span>
-              <span className="ml-1 h-2 w-2 animate-pulse rounded-full bg-current opacity-70" />
+          {/* STEP: FAILED */}
+          {step === "failed" && (
+            <div className="flex flex-col items-center py-8 gap-3 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+                <AlertCircle className="h-12 w-12 text-red-500" />
+              </div>
+              <h2 className="text-xl font-bold text-red-700">Giao dịch thất bại</h2>
+              <p className="text-sm text-gray-500">{errorMsg}</p>
+              <button
+                onClick={() => { setStep("select"); setErrorMsg(null); }}
+                className="mt-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Thử lại
+              </button>
             </div>
-
-            {/* Thông tin tài khoản ngân hàng */}
-            <div className="space-y-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-[11px] text-gray-500">
-              <div className="flex justify-between">
-                <span>Ngân hàng:</span>
-                <span className="font-semibold text-gray-700">
-                  VPBank ({VIETQR_BANK_BIN})
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Số tài khoản:</span>
-                <span className="font-mono font-semibold text-gray-700">
-                  {VIETQR_ACCOUNT_NO}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Chủ tài khoản:</span>
-                <span className="font-semibold text-gray-700">
-                  {VIETQR_ACCOUNT_NAME}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Nội dung CK:</span>
-                <span className="font-semibold text-gray-700">
-                  Thanh toan ve xe {ticketNo}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
