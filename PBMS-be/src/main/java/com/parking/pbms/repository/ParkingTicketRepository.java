@@ -16,6 +16,8 @@ public interface ParkingTicketRepository extends JpaRepository<ParkingTicket, Lo
     Optional<ParkingTicket> findFirstByPlateNoSnapshotAndStatusOrderByCheckInAtDesc(String plateNoSnapshot, String status);
     List<ParkingTicket> findByEntryStaffIdOrExitStaffIdOrderByCheckInAtDesc(Integer entryStaffId, Integer exitStaffId);
 
+    long countByEntryFloorIdAndVehicleTypeAndStatus(Integer entryFloorId, String vehicleType, String status);
+    
     @Query("SELECT COUNT(t) FROM ParkingTicket t WHERE " +
            "t.vehicleType = :vehicleType AND " +
            "t.entryFloorId = :floorId AND " +

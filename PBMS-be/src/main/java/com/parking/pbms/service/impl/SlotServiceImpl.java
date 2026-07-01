@@ -165,12 +165,12 @@ public class SlotServiceImpl implements SlotService {
             int monthlyMotorcycleInside;
 
             if (isToday) {
-                // If today, read directly from Slot states
-                occupiedCarSlots = (int) parkingSlotRepository.countByFloorIdAndVehicleTypeAndStatus(floorId, "CAR", "OCCUPIED");
-                occupiedMotorcycleSlots = (int) parkingSlotRepository.countByFloorIdAndVehicleTypeAndStatus(floorId, "MOTORCYCLE", "OCCUPIED");
+                // Đếm số xe đang gửi thực tế từ số vé ACTIVE
+                occupiedCarSlots = (int) parkingTicketRepository.countByEntryFloorIdAndVehicleTypeAndStatus(floorId, "CAR", "ACTIVE");
+                occupiedMotorcycleSlots = (int) parkingTicketRepository.countByEntryFloorIdAndVehicleTypeAndStatus(floorId, "MOTORCYCLE", "ACTIVE");
                 
-                availableCarSlots = (int) parkingSlotRepository.countByFloorIdAndVehicleTypeAndStatus(floorId, "CAR", "AVAILABLE");
-                availableMotorcycleSlots = (int) parkingSlotRepository.countByFloorIdAndVehicleTypeAndStatus(floorId, "MOTORCYCLE", "AVAILABLE");
+                availableCarSlots = Math.max(0, totalCarSlots - occupiedCarSlots);
+                availableMotorcycleSlots = Math.max(0, totalMotorcycleSlots - occupiedMotorcycleSlots);
 
                 monthlyCarInside = (int) reservationRepository.countPreBookedNotCheckedIn(floorId, "CAR", date);
                 monthlyMotorcycleInside = (int) reservationRepository.countPreBookedNotCheckedIn(floorId, "MOTORCYCLE", date);
