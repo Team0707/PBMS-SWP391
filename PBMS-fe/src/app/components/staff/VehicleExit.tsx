@@ -161,7 +161,7 @@ export default function VehicleExit({ selectedLaneCode, selectedFloorCode }: Veh
       setOcrSteps([...steps]);
       setActiveStepIndex(1);
 
-      const apiKey = "AQ.Ab8RN6L4bBX3Newqu0lUO8srO5XU5VYXKfbvsaTXc7UH6OYEZQ";
+      const apiKey = "AQ.Ab8RN6JSCpMXwWySUtrFPXJLhydSeyJA6ZIL0OZaUZ0yHkpbWA";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -378,7 +378,7 @@ export default function VehicleExit({ selectedLaneCode, selectedFloorCode }: Veh
     setNotFound(false);
 
     try {
-      const apiKey = "AQ.Ab8RN6L4bBX3Newqu0lUO8srO5XU5VYXKfbvsaTXc7UH6OYEZQ";
+      const apiKey = "AQ.Ab8RN6JSCpMXwWySUtrFPXJLhydSeyJA6ZIL0OZaUZ0yHkpbWA";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {

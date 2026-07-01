@@ -200,7 +200,7 @@ export default function VehicleEntry({ selectedFloorCode, selectedLaneCode }: Ve
       setActiveStepIndex(2);
 
       // Call Gemini API
-      const apiKey = "AQ.Ab8RN6L4bBX3Newqu0lUO8srO5XU5VYXKfbvsaTXc7UH6OYEZQ";
+      const apiKey = "AQ.Ab8RN6JSCpMXwWySUtrFPXJLhydSeyJA6ZIL0OZaUZ0yHkpbWA";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -439,7 +439,7 @@ export default function VehicleEntry({ selectedFloorCode, selectedLaneCode }: Ve
       setActiveStepIndex(2);
 
       // Call Gemini API
-      const apiKey = "AQ.Ab8RN6L4bBX3Newqu0lUO8srO5XU5VYXKfbvsaTXc7UH6OYEZQ";
+      const apiKey = "AQ.Ab8RN6JSCpMXwWySUtrFPXJLhydSeyJA6ZIL0OZaUZ0yHkpbWA";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
