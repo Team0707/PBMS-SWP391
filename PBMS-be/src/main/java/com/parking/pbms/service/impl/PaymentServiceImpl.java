@@ -45,6 +45,12 @@ public class PaymentServiceImpl implements PaymentService {
         BigDecimal penalty = ticket.getPenaltyAmount() != null ? ticket.getPenaltyAmount() : BigDecimal.ZERO;
         BigDecimal totalAmount = fee.add(penalty);
 
+        // Enforce VNPay minimum: 10,000 VND (amounts below this are rejected by VNPay)
+        BigDecimal vnpayMinimum = BigDecimal.valueOf(10_000);
+        if (totalAmount.compareTo(vnpayMinimum) < 0) {
+            totalAmount = vnpayMinimum;
+        }
+
         String description = "ThanhToanVeXe_" + ticket.getTicketId();
 
         // 1. Lưu trạng thái PENDING vào Database trước
