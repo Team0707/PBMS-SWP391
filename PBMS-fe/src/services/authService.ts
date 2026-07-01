@@ -1,4 +1,5 @@
 import { UserRole } from "../app/components/Login";
+import { safeJson } from "../utils/apiHelper";
 
 export interface LoginResponseData {
   accessToken: string;
@@ -16,7 +17,7 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.17:8080/api/v1";
 
 export const authService = {
   async login(username: string, password: string, remember = false): Promise<{ role: UserRole; name: string }> {
@@ -28,7 +29,7 @@ export const authService = {
       body: JSON.stringify({ username, password }),
     });
 
-    const result: ApiResponse<LoginResponseData> = await response.json();
+    const result: ApiResponse<LoginResponseData> = await safeJson(response);
 
     if (!response.ok) {
       throw new Error(result.message || "Tên đăng nhập hoặc mật khẩu không đúng.");
@@ -106,7 +107,7 @@ export const authService = {
       }
     });
 
-    const result: ApiResponse<UserProfile> = await response.json();
+    const result: ApiResponse<UserProfile> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải thông tin hồ sơ.");
     }
@@ -130,7 +131,7 @@ export const authService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<UserProfile> = await response.json();
+    const result: ApiResponse<UserProfile> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể cập nhật hồ sơ.");
     }
@@ -148,7 +149,7 @@ export const authService = {
       body: JSON.stringify({ password })
     });
 
-    const result: ApiResponse<null> = await response.json();
+    const result: ApiResponse<null> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Mat khau hien tai khong chinh xac.");
     }
@@ -163,7 +164,7 @@ export const authService = {
       body: JSON.stringify(payload),
     });
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<any> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Có lỗi xảy ra khi đăng ký.");
     }
@@ -177,7 +178,7 @@ export const authService = {
       },
     });
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<any> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Xác thực email thất bại.");
     }
@@ -192,7 +193,7 @@ export const authService = {
       body: JSON.stringify({ email }),
     });
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<any> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Có lỗi xảy ra.");
     }
@@ -207,7 +208,7 @@ export const authService = {
       body: JSON.stringify(payload),
     });
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<any> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Đặt lại mật khẩu thất bại.");
     }

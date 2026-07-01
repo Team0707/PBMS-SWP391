@@ -29,6 +29,8 @@ interface ReportRow {
   lanVao: string;
   lanRa: string;
   nhanVienGiamSat: string;
+  entryImage?: string;
+  exitImage?: string;
 }
 
 const formatCurrency = (amount: number): string => {
@@ -58,41 +60,13 @@ const formatDateTime = (isoString?: string): string => {
   }
 };
 
-const entryCols: Column[] = [
-  { key: "stt", label: "STT", width: "40px" },
-  { key: "cardNo", label: "CardNo" },
-  { key: "maThe", label: "Mã thẻ" },
-  { key: "bienSo", label: "Biển số" },
-  { key: "tang", label: "Tầng", width: "60px" },
-  { key: "tgVao", label: "Thời gian vào" },
-  { key: "nhomThe", label: "Nhóm thẻ" },
-  { key: "khachHang", label: "Khách hàng" },
-  { key: "lanVao", label: "Làn vào", width: "70px" },
-  { key: "nhanVienGiamSat", label: "Nhân viên giám sát" },
-];
-
-const exitCols: Column[] = [
-  { key: "stt", label: "STT", width: "40px" },
-  { key: "cardNo", label: "CardNo" },
-  { key: "maThe", label: "Mã thẻ" },
-  { key: "bienSo", label: "Biển số" },
-  { key: "tang", label: "Tầng", width: "60px" },
-  { key: "tgVao", label: "Thời gian vào" },
-  { key: "tgRa", label: "Thời gian ra" },
-  { key: "thuTien", label: "Thu tiền", width: "100px", render: moneyCell },
-  { key: "nhomThe", label: "Nhóm thẻ" },
-  { key: "khachHang", label: "Khách hàng" },
-  { key: "lanVao", label: "Làn vào", width: "70px" },
-  { key: "lanRa", label: "Làn ra", width: "70px" },
-  { key: "nhanVienGiamSat", label: "Nhân viên giám sát" },
-];
-
 export default function VehicleEntryExit() {
   const [tab, setTab] = useState<"exit" | "entry">("entry");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<ReportRow[]>([]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const [lanes, setLanes] = useState<LaneDto[]>([]);
   const [staffList, setStaffList] = useState<StaffMinimalDto[]>([]);
@@ -104,6 +78,95 @@ export default function VehicleEntryExit() {
   const [selectedLane, setSelectedLane] = useState("");
   const [selectedStaff, setSelectedStaff] = useState("");
   const [ticketType, setTicketType] = useState("");
+
+  const entryCols: Column[] = [
+    { key: "stt", label: "STT", width: "40px" },
+    { key: "cardNo", label: "CardNo" },
+    { key: "maThe", label: "Mã thẻ" },
+    { key: "bienSo", label: "Biển số" },
+    {
+      key: "entryImage",
+      label: "Ảnh xe vào",
+      render: (val: string) => val ? (
+        <button
+          type="button"
+          onClick={() => setSelectedImageUrl(val)}
+          className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
+        >
+          Xem ảnh
+        </button>
+      ) : (
+        <span className="text-gray-400">—</span>
+      )
+    },
+    {
+      key: "exitImage",
+      label: "Ảnh xe ra",
+      render: (val: string) => val ? (
+        <button
+          type="button"
+          onClick={() => setSelectedImageUrl(val)}
+          className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
+        >
+          Xem ảnh
+        </button>
+      ) : (
+        <span className="text-gray-400">—</span>
+      )
+    },
+    { key: "tang", label: "Tầng", width: "60px" },
+    { key: "tgVao", label: "Thời gian vào" },
+    { key: "nhomThe", label: "Nhóm thẻ" },
+    { key: "khachHang", label: "Khách hàng" },
+    { key: "lanVao", label: "Làn vào", width: "70px" },
+    { key: "nhanVienGiamSat", label: "Nhân viên giám sát" },
+  ];
+
+  const exitCols: Column[] = [
+    { key: "stt", label: "STT", width: "40px" },
+    { key: "cardNo", label: "CardNo" },
+    { key: "maThe", label: "Mã thẻ" },
+    { key: "bienSo", label: "Biển số" },
+    {
+      key: "entryImage",
+      label: "Ảnh xe vào",
+      render: (val: string) => val ? (
+        <button
+          type="button"
+          onClick={() => setSelectedImageUrl(val)}
+          className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
+        >
+          Xem ảnh
+        </button>
+      ) : (
+        <span className="text-gray-400">—</span>
+      )
+    },
+    {
+      key: "exitImage",
+      label: "Ảnh xe ra",
+      render: (val: string) => val ? (
+        <button
+          type="button"
+          onClick={() => setSelectedImageUrl(val)}
+          className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
+        >
+          Xem ảnh
+        </button>
+      ) : (
+        <span className="text-gray-400">—</span>
+      )
+    },
+    { key: "tang", label: "Tầng", width: "60px" },
+    { key: "tgVao", label: "Thời gian vào" },
+    { key: "tgRa", label: "Thời gian ra" },
+    { key: "thuTien", label: "Thu tiền", width: "100px", render: moneyCell },
+    { key: "nhomThe", label: "Nhóm thẻ" },
+    { key: "khachHang", label: "Khách hàng" },
+    { key: "lanVao", label: "Làn vào", width: "70px" },
+    { key: "lanRa", label: "Làn ra", width: "70px" },
+    { key: "nhanVienGiamSat", label: "Nhân viên giám sát" },
+  ];
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -153,6 +216,8 @@ export default function VehicleEntryExit() {
             tab === "entry"
               ? item.entryStaffName || ""
               : item.exitStaffName || "",
+          entryImage: item.entryImage || "",
+          exitImage: item.exitImage || "",
         }))
       );
     } catch (err: any) {
@@ -348,6 +413,39 @@ export default function VehicleEntryExit() {
           )}
         </div>
       </div>
+
+      {selectedImageUrl && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-lg overflow-hidden shadow-2xl max-w-2xl w-full flex flex-col">
+            <div className="px-4 py-2 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <span className="text-sm font-semibold text-gray-700">Ảnh xe vào chi tiết</span>
+              <button
+                type="button"
+                onClick={() => setSelectedImageUrl(null)}
+                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 flex justify-center items-center bg-black/5 min-h-[300px]">
+              <img
+                src={selectedImageUrl}
+                alt="Vehicle Entry Detail"
+                className="max-h-[500px] object-contain border border-gray-300 rounded"
+              />
+            </div>
+            <div className="px-4 py-2 border-t border-gray-200 flex justify-end bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setSelectedImageUrl(null)}
+                className="px-4 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold rounded"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

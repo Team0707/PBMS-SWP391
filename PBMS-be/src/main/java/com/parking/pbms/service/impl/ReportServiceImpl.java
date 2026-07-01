@@ -182,7 +182,9 @@ public class ReportServiceImpl implements ReportService {
                 entryLaneName,
                 exitLaneName,
                 entryStaffName,
-                exitStaffName
+                exitStaffName,
+                ticket.getEntryImage(),
+                ticket.getExitImage()
         );
     }
 }

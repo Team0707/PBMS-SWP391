@@ -295,4 +295,43 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
     }
+
+    @Override
+    @Transactional
+    public void mockPaymentSuccess(Long orderCode) {
+        Payment payment = paymentRepository.findById(orderCode)
+                .orElseThrow(() -> new RuntimeException("Giao dịch không tồn tại"));
+
+        if ("PAID".equalsIgnoreCase(payment.getStatus())) {
+            return;
+        }
+
+        payment.setStatus("PAID");
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        if ("CARD_REGISTRATION".equalsIgnoreCase(payment.getPaymentType())) {
+            Card card = cardRepository.findById(payment.getCardId()).orElse(null);
+            if (card != null) {
+                card.setStatus("ACTIVE");
+                cardRepository.save(card);
+            }
+        } else if ("CARD_RENEWAL".equalsIgnoreCase(payment.getPaymentType())) {
+            Card card = cardRepository.findById(payment.getCardId()).orElse(null);
+            if (card != null) {
+                CardHistory history = cardHistoryRepository.findByPaymentId(payment.getPaymentId()).orElse(null);
+                if (history != null && history.getNewExpireAt() != null) {
+                    card.setExpireAt(history.getNewExpireAt());
+                }
+                card.setStatus("ACTIVE");
+                cardRepository.save(card);
+            }
+        } else if ("PARKING_FEE".equalsIgnoreCase(payment.getPaymentType())) {
+            ParkingTicket ticket = ticketRepository.findById(payment.getTicketId()).orElse(null);
+            if (ticket != null) {
+                ticket.setStatus("PAID");
+                ticketRepository.save(ticket);
+            }
+        }
+    }
 }

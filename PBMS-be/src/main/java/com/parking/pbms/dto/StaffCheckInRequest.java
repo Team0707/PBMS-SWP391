@@ -19,5 +19,7 @@ public record StaffCheckInRequest(
         String floorCode,
 
         @NotBlank(message = "Mã làn không được để trống")
-        String laneCode
+        String laneCode,
+
+        String entryImage
 ) {}

@@ -43,6 +43,12 @@ public class ParkingTicket {
     @Column(name = "PlateNoSnapshot", nullable = false, length = 20)
     private String plateNoSnapshot;
 
+    @Column(name = "EntryImage", columnDefinition = "VARCHAR(MAX)")
+    private String entryImage;
+
+    @Column(name = "ExitImage", columnDefinition = "VARCHAR(MAX)")
+    private String exitImage;
+
     @Column(name = "EntryFloorID", nullable = false)
     private Integer entryFloorId;
 

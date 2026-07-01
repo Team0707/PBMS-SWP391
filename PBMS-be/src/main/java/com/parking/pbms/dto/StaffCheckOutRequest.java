@@ -10,5 +10,7 @@ public record StaffCheckOutRequest(
         String laneCode,
 
         // Phuong thuc thanh toan: CASH hoac VNPAY (optional, default = VNPAY)
-        String paymentMethod
+        String paymentMethod,
+
+        String exitImage
 ) {}

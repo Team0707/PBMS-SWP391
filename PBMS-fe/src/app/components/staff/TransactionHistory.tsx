@@ -31,6 +31,7 @@ export default function TransactionHistory() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const [page, setPage] = useState(1);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -158,7 +159,7 @@ export default function TransactionHistory() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  {["STT", "Mã vé", "Biển số", "Loại xe", "Loại vé", "Thời gian vào", "Thời gian ra", "Phí gửi xe", "Trạng thái"].map(h => (
+                  {["STT", "Mã vé", "Biển số", "Ảnh xe vào", "Ảnh xe ra", "Loại xe", "Loại vé", "Thời gian vào", "Thời gian ra", "Phí gửi xe", "Trạng thái"].map(h => (
                     <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">
                       {h}
                     </th>
@@ -168,7 +169,7 @@ export default function TransactionHistory() {
               <tbody>
                 {pageData.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400">
+                    <td colSpan={11} className="px-4 py-8 text-center text-sm text-gray-400">
                       Không tìm thấy giao dịch nào
                     </td>
                   </tr>
@@ -177,6 +178,32 @@ export default function TransactionHistory() {
                     <td className="px-3 py-2 text-xs text-gray-500">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td className="px-3 py-2 text-xs font-semibold text-blue-700">{row.maVe}</td>
                     <td className="px-3 py-2 text-xs font-bold text-gray-800 uppercase">{row.bienSo}</td>
+                    <td className="px-3 py-2">
+                      {row.entryImage ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageUrl(row.entryImage!)}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
+                        >
+                          Xem ảnh
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {row.exitImage ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageUrl(row.exitImage!)}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
+                        >
+                          Xem ảnh
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">
                       <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${row.loaiXe === "Xe máy" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
                         {row.loaiXe}
@@ -241,6 +268,39 @@ export default function TransactionHistory() {
           </div>
         )}
       </div>
+
+      {selectedImageUrl && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-lg overflow-hidden shadow-2xl max-w-2xl w-full flex flex-col">
+            <div className="px-4 py-2 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <span className="text-sm font-semibold text-gray-700">Ảnh xe vào chi tiết</span>
+              <button
+                type="button"
+                onClick={() => setSelectedImageUrl(null)}
+                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 flex justify-center items-center bg-black/5 min-h-[300px]">
+              <img
+                src={selectedImageUrl}
+                alt="Vehicle Entry Detail"
+                className="max-h-[500px] object-contain border border-gray-300 rounded"
+              />
+            </div>
+            <div className="px-4 py-2 border-t border-gray-200 flex justify-end bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setSelectedImageUrl(null)}
+                className="px-4 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold rounded"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

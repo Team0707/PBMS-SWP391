@@ -30,6 +30,7 @@ public class StaffServiceImpl implements StaffService {
     private final VehicleRepository vehicleRepository;
     private final StaffRepository staffRepository;
     private final AccountRepository accountRepository;
+    private final ViolationRuleRepository violationRuleRepository;
 
     @Override
     public List<Lane> getLanes() {
@@ -189,6 +190,7 @@ public class StaffServiceImpl implements StaffService {
                 .ticketType(ticketType)
                 .vehicleType(vehicleType)
                 .plateNoSnapshot(plateNo)
+                .entryImage(request.entryImage())
                 .entryFloorId(floor.getFloorId())
                 .entryLaneId(lane.getLaneId())
                 .entryStaffId(staff.getStaffId())
@@ -222,6 +224,8 @@ public class StaffServiceImpl implements StaffService {
                 ticket.getFeeAmount(),
                 ticket.getStatus(),
                 message,
+                null,
+                ticket.getEntryImage(),
                 null
         );
     }
@@ -259,6 +263,9 @@ public class StaffServiceImpl implements StaffService {
             Optional<Card> card = cardRepository.findByCardNo(input);
             if (card.isPresent()) {
                 ticketOpt = parkingTicketRepository.findFirstByCardIdAndStatusOrderByCheckInAtDesc(card.get().getCardId(), "ACTIVE");
+                if (!ticketOpt.isPresent()) {
+                    ticketOpt = parkingTicketRepository.findFirstByCardIdAndStatusOrderByCheckInAtDesc(card.get().getCardId(), "PAID");
+                }
             }
         }
 
@@ -267,18 +274,24 @@ public class StaffServiceImpl implements StaffService {
             Optional<Reservation> res = reservationRepository.findByReservationNo(input);
             if (res.isPresent()) {
                 ticketOpt = parkingTicketRepository.findFirstByReservationIdAndStatusOrderByCheckInAtDesc(res.get().getReservationId(), "ACTIVE");
+                if (!ticketOpt.isPresent()) {
+                    ticketOpt = parkingTicketRepository.findFirstByReservationIdAndStatusOrderByCheckInAtDesc(res.get().getReservationId(), "PAID");
+                }
             }
         }
 
         // 5. Try by PlateNo
         if (!ticketOpt.isPresent()) {
             ticketOpt = parkingTicketRepository.findFirstByPlateNoSnapshotAndStatusOrderByCheckInAtDesc(input, "ACTIVE");
+            if (!ticketOpt.isPresent()) {
+                ticketOpt = parkingTicketRepository.findFirstByPlateNoSnapshotAndStatusOrderByCheckInAtDesc(input, "PAID");
+            }
         }
 
         ParkingTicket ticket = ticketOpt.orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin xe đang gửi hoặc vé đã được thanh toán"));
 
-        if (!ticket.getStatus().equalsIgnoreCase("ACTIVE")) {
-            throw new RuntimeException("Vé này không ở trạng thái hoạt động (Trạng thái: " + ticket.getStatus() + ")");
+        if (!ticket.getStatus().equalsIgnoreCase("ACTIVE") && !ticket.getStatus().equalsIgnoreCase("PAID")) {
+            throw new RuntimeException("Vé này không ở trạng thái hoạt động hoặc chưa thanh toán (Trạng thái: " + ticket.getStatus() + ")");
         }
 
         // Compute fee
@@ -294,15 +307,18 @@ public class StaffServiceImpl implements StaffService {
             BigDecimal basePrice = "CAR".equalsIgnoreCase(vehicleType) ? new BigDecimal("20000") : new BigDecimal("5000");
             fee = basePrice;
 
-            // Phạt đỗ quá giờ (quá 6 giờ)
-            long diffMs = java.time.Duration.between(checkIn, checkOutTime).toMillis();
-            long diffHours = (long) Math.ceil((double) diffMs / (1000 * 60 * 60));
-            if (diffHours > 6) {
-                long overdueHours = diffHours - 6;
-                long penaltyRate = "CAR".equalsIgnoreCase(vehicleType) ? 50000L : 10000L;
-                penalty = new BigDecimal(overdueHours * penaltyRate);
-                fee = fee.add(penalty);
-                violationReason = "Đỗ quá giờ cho phép (quá 6h) - quá hạn " + overdueHours + " giờ";
+            // Phạt đỗ quá giờ (lấy từ database)
+            Optional<ViolationRule> ruleOpt = violationRuleRepository.findByTicketTypeAndVehicleType(ticketType, vehicleType);
+            if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {
+                ViolationRule rule = ruleOpt.get();
+                long diffMs = java.time.Duration.between(checkIn, checkOutTime).toMillis();
+                long diffHours = (long) Math.ceil((double) diffMs / (1000 * 60 * 60));
+                if (diffHours > rule.getMaxDurationHours()) {
+                    long overdueHours = diffHours - rule.getMaxDurationHours();
+                    penalty = rule.getPenaltyPerHour().multiply(BigDecimal.valueOf(overdueHours));
+                    fee = fee.add(penalty);
+                    violationReason = "Đỗ quá giờ cho phép (quá " + rule.getMaxDurationHours() + "h) - quá hạn " + overdueHours + " giờ";
+                }
             }
         } else if ("DAY".equalsIgnoreCase(ticketType) || "MONTHLY".equalsIgnoreCase(ticketType)) {
             if (ticket.getCardId() != null) {
@@ -315,11 +331,14 @@ public class StaffServiceImpl implements StaffService {
                             long overMs = java.time.Duration.between(expireDateTime, checkOutTime).toMillis();
                             long overdueHours = (long) Math.ceil((double) overMs / (1000 * 60 * 60));
                             if (overdueHours > 0) {
-                                long penaltyRate = "CAR".equalsIgnoreCase(vehicleType) ? 50000L : 10000L;
-                                penalty = new BigDecimal(overdueHours * penaltyRate);
-                                fee = penalty; // Chỉ thu tiền phạt vì phí thẻ đã mua trước
-                                violationReason = "Thẻ " + ("DAY".equalsIgnoreCase(ticketType) ? "ngày" : "tháng") 
-                                        + " hết hạn tại thời điểm check-out - quá hạn " + overdueHours + " giờ";
+                                Optional<ViolationRule> ruleOpt = violationRuleRepository.findByTicketTypeAndVehicleType(ticketType, vehicleType);
+                                if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {
+                                    ViolationRule rule = ruleOpt.get();
+                                    penalty = rule.getPenaltyPerHour().multiply(BigDecimal.valueOf(overdueHours));
+                                    fee = penalty; // Chỉ thu tiền phạt vì phí thẻ đã mua trước
+                                    violationReason = "Thẻ " + ("DAY".equalsIgnoreCase(ticketType) ? "ngày" : "tháng") 
+                                            + " hết hạn tại thời điểm check-out - quá hạn " + overdueHours + " giờ";
+                                }
                             }
                         }
                     }
@@ -334,6 +353,7 @@ public class StaffServiceImpl implements StaffService {
         ticket.setFeeAmount(fee);
         ticket.setPenaltyAmount(penalty);
         ticket.setViolationReason(violationReason);
+        ticket.setExitImage(request.exitImage());
         ticket.setStatus("COMPLETED");
         parkingTicketRepository.save(ticket);
 
@@ -394,7 +414,170 @@ public class StaffServiceImpl implements StaffService {
                 ticket.getFeeAmount(),
                 ticket.getStatus(),
                 checkoutMsg,
-                ticket.getViolationReason()
+                ticket.getViolationReason(),
+                ticket.getEntryImage(),
+                ticket.getExitImage()
+        );
+    }
+
+    @Override
+    @Transactional
+    public StaffTicketResponse previewCheckOut(String ticketNoOrQrToken, String laneCode, String username) {
+        Account account = accountRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+        Staff staff = staffRepository.findByAccountId(account.getAccountId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên tương ứng với tài khoản: " + username));
+
+        Lane lane = laneRepository.findByLaneCode(laneCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy làn xe: " + laneCode));
+
+        if (!lane.getLaneType().equalsIgnoreCase("EXIT")) {
+            throw new RuntimeException("Làn xe " + laneCode + " không phải làn ra");
+        }
+
+        String input = ticketNoOrQrToken.trim().toUpperCase();
+        Optional<ParkingTicket> ticketOpt = Optional.empty();
+
+        ticketOpt = parkingTicketRepository.findByTicketNo(input);
+
+        if (!ticketOpt.isPresent()) {
+            ticketOpt = parkingTicketRepository.findByQrToken(input);
+        }
+
+        if (!ticketOpt.isPresent() && input.startsWith("CARD")) {
+            Optional<Card> card = cardRepository.findByCardNo(input);
+            if (card.isPresent()) {
+                ticketOpt = parkingTicketRepository.findFirstByCardIdAndStatusOrderByCheckInAtDesc(card.get().getCardId(), "ACTIVE");
+                if (!ticketOpt.isPresent()) {
+                    ticketOpt = parkingTicketRepository.findFirstByCardIdAndStatusOrderByCheckInAtDesc(card.get().getCardId(), "PAID");
+                }
+            }
+        }
+
+        if (!ticketOpt.isPresent() && input.startsWith("RES")) {
+            Optional<Reservation> res = reservationRepository.findByReservationNo(input);
+            if (res.isPresent()) {
+                ticketOpt = parkingTicketRepository.findFirstByReservationIdAndStatusOrderByCheckInAtDesc(res.get().getReservationId(), "ACTIVE");
+                if (!ticketOpt.isPresent()) {
+                    ticketOpt = parkingTicketRepository.findFirstByReservationIdAndStatusOrderByCheckInAtDesc(res.get().getReservationId(), "PAID");
+                }
+            }
+        }
+
+        if (!ticketOpt.isPresent()) {
+            ticketOpt = parkingTicketRepository.findFirstByPlateNoSnapshotAndStatusOrderByCheckInAtDesc(input, "ACTIVE");
+            if (!ticketOpt.isPresent()) {
+                ticketOpt = parkingTicketRepository.findFirstByPlateNoSnapshotAndStatusOrderByCheckInAtDesc(input, "PAID");
+            }
+        }
+
+        ParkingTicket ticket = ticketOpt.orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin xe đang gửi hoặc vé đã được thanh toán"));
+
+        if (!ticket.getStatus().equalsIgnoreCase("ACTIVE") && !ticket.getStatus().equalsIgnoreCase("PAID")) {
+            throw new RuntimeException("Vé này không ở trạng thái hoạt động hoặc chưa thanh toán (Trạng thái: " + ticket.getStatus() + ")");
+        }
+
+        BigDecimal fee = BigDecimal.ZERO;
+        BigDecimal penalty = BigDecimal.ZERO;
+        String violationReason = null;
+        LocalDateTime checkIn = ticket.getCheckInAt();
+        LocalDateTime checkOutTime = LocalDateTime.now();
+        String ticketType = ticket.getTicketType();
+        String vehicleType = ticket.getVehicleType();
+
+        if ("SINGLE".equalsIgnoreCase(ticketType)) {
+            BigDecimal basePrice = "CAR".equalsIgnoreCase(vehicleType) ? new BigDecimal("20000") : new BigDecimal("5000");
+            fee = basePrice;
+
+            Optional<ViolationRule> ruleOpt = violationRuleRepository.findByTicketTypeAndVehicleType(ticketType, vehicleType);
+            if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {
+                ViolationRule rule = ruleOpt.get();
+                long diffMs = java.time.Duration.between(checkIn, checkOutTime).toMillis();
+                long diffHours = (long) Math.ceil((double) diffMs / (1000 * 60 * 60));
+                if (diffHours > rule.getMaxDurationHours()) {
+                    long overdueHours = diffHours - rule.getMaxDurationHours();
+                    penalty = rule.getPenaltyPerHour().multiply(BigDecimal.valueOf(overdueHours));
+                    fee = fee.add(penalty);
+                    violationReason = "Đỗ quá giờ cho phép (quá " + rule.getMaxDurationHours() + "h) - quá hạn " + overdueHours + " giờ";
+                }
+            }
+        } else if ("DAY".equalsIgnoreCase(ticketType) || "MONTHLY".equalsIgnoreCase(ticketType)) {
+            if (ticket.getCardId() != null) {
+                Optional<Card> cardOpt = cardRepository.findById(ticket.getCardId());
+                if (cardOpt.isPresent()) {
+                    Card card = cardOpt.get();
+                    if (card.getExpireAt() != null) {
+                        LocalDateTime expireDateTime = card.getExpireAt().atTime(23, 59, 59);
+                        if (checkOutTime.isAfter(expireDateTime)) {
+                            long overMs = java.time.Duration.between(expireDateTime, checkOutTime).toMillis();
+                            long overdueHours = (long) Math.ceil((double) overMs / (1000 * 60 * 60));
+                            if (overdueHours > 0) {
+                                Optional<ViolationRule> ruleOpt = violationRuleRepository.findByTicketTypeAndVehicleType(ticketType, vehicleType);
+                                if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {
+                                    ViolationRule rule = ruleOpt.get();
+                                    penalty = rule.getPenaltyPerHour().multiply(BigDecimal.valueOf(overdueHours));
+                                    fee = penalty;
+                                    violationReason = "Thẻ " + ("DAY".equalsIgnoreCase(ticketType) ? "ngày" : "tháng") 
+                                            + " hết hạn tại thời điểm check-out - quá hạn " + overdueHours + " giờ";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        String floorCode = "Unknown";
+        Floor floor = floorRepository.findById(ticket.getEntryFloorId()).orElse(null);
+        if (floor != null) {
+            floorCode = floor.getFloorCode();
+        }
+
+        String entryLaneCode = "Unknown";
+        Lane entryLane = laneRepository.findById(ticket.getEntryLaneId()).orElse(null);
+        if (entryLane != null) {
+            entryLaneCode = entryLane.getLaneCode();
+        }
+
+        String entryStaffName = "Unknown";
+        Staff entryStaff = staffRepository.findById(ticket.getEntryStaffId()).orElse(null);
+        if (entryStaff != null) {
+            entryStaffName = entryStaff.getFullName();
+        }
+
+        // Lưu phí đã tính vào DB để các bước thanh toán (Cash/VNPay) có số liệu
+        ticket.setFeeAmount(fee);
+        ticket.setPenaltyAmount(penalty);
+        ticket.setViolationReason(violationReason);
+        parkingTicketRepository.save(ticket);
+
+        String ticketNo = ticket.getTicketNo() != null ? ticket.getTicketNo() : "TK" + String.format("%06d", ticket.getTicketId());
+
+        String checkoutMsg = "Xem trước thông tin vé ra thành công";
+        if (penalty.compareTo(BigDecimal.ZERO) > 0) {
+            checkoutMsg = "Phạt quá hạn đỗ: " + String.format("%,d", penalty.longValue()) + "đ (đã cộng vào tổng tiền vé)";
+        }
+
+        return new StaffTicketResponse(
+                ticket.getTicketId(),
+                ticketNo,
+                ticket.getQrToken(),
+                ticket.getTicketType(),
+                ticket.getVehicleType(),
+                ticket.getPlateNoSnapshot(),
+                floorCode,
+                entryLaneCode,
+                lane.getLaneCode(),
+                entryStaffName,
+                staff.getFullName(),
+                ticket.getCheckInAt(),
+                checkOutTime,
+                fee,
+                ticket.getStatus(),
+                checkoutMsg,
+                violationReason,
+                ticket.getEntryImage(),
+                null
         );
     }
 
@@ -422,8 +605,64 @@ public class StaffServiceImpl implements StaffService {
                     ticket.getCheckOutAt(),
                     ticket.getFeeAmount(),
                     staff.getFullName(),
-                    ticket.getStatus()
+                    ticket.getStatus(),
+                    ticket.getEntryImage(),
+                    ticket.getExitImage()
             );
         }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> getPreBookedDetails(String code) {
+        String cleanCode = code.trim().toUpperCase();
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        if (cleanCode.startsWith("CARD")) {
+            Card card = cardRepository.findByCardNo(cleanCode)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thẻ tháng: " + cleanCode));
+
+            if (!card.getStatus().equalsIgnoreCase("ACTIVE")) {
+                throw new RuntimeException("Thẻ tháng " + cleanCode + " không hoạt động (Trạng thái: " + card.getStatus() + ")");
+            }
+
+            if (card.getEffectiveFrom() != null && card.getEffectiveFrom().isAfter(LocalDate.now())) {
+                throw new RuntimeException("Thẻ tháng chưa đến ngày bắt đầu sử dụng (Ngày bắt đầu: " + card.getEffectiveFrom() + ")");
+            }
+
+            if (card.getExpireAt() != null && card.getExpireAt().isBefore(LocalDate.now())) {
+                throw new RuntimeException("Thẻ tháng đã hết hạn vào ngày " + card.getExpireAt());
+            }
+
+            Vehicle vehicle = vehicleRepository.findById(card.getVehicleId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phương tiện đăng ký cho thẻ tháng này"));
+
+            result.put("plate", vehicle.getPlateNo());
+            String typeDisplay = vehicle.getVehicleType().equalsIgnoreCase("CAR") ? "Ô tô" : "Xe máy";
+            result.put("type", typeDisplay);
+            result.put("status", card.getStatus());
+            return result;
+        } else if (cleanCode.startsWith("RES")) {
+            Reservation res = reservationRepository.findByReservationNo(cleanCode)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin đặt trước: " + cleanCode));
+
+            if (!res.getStatus().equalsIgnoreCase("CONFIRMED")) {
+                throw new RuntimeException("Đơn đặt trước không khả dụng (Trạng thái: " + res.getStatus() + ")");
+            }
+
+            if (!res.getReservationDate().equals(LocalDate.now())) {
+                throw new RuntimeException("Đơn đặt trước dành cho ngày " + res.getReservationDate() + ". Hôm nay là " + LocalDate.now());
+            }
+
+            Vehicle vehicle = vehicleRepository.findById(res.getVehicleId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phương tiện đăng ký cho đơn đặt trước"));
+
+            result.put("plate", vehicle.getPlateNo());
+            String typeDisplay = vehicle.getVehicleType().equalsIgnoreCase("CAR") ? "Ô tô" : "Xe máy";
+            result.put("type", typeDisplay);
+            result.put("status", res.getStatus());
+            return result;
+        } else {
+            throw new RuntimeException("Mã đặt trước không hợp lệ (Phải bắt đầu bằng CARD hoặc RES)");
+        }
     }
 }

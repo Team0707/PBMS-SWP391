@@ -290,7 +290,7 @@ public class UserCardServiceImpl implements UserCardService {
         if (card.getExpireAt() != null) {
             remainingDays = (int) ChronoUnit.DAYS.between(LocalDate.now(), card.getExpireAt());
         }
-        String trangThai = remainingDays < 0 ? "Hết hạn" : (remainingDays <= 14 ? "Sắp hết hạn" : "Hoạt động");
+        String trangThai = remainingDays <= 0 ? "Hết hạn" : (remainingDays <= 14 ? "Sắp hết hạn" : "Hoạt động");
 
         String cardNo = card.getCardNo();
         if (cardNo == null) {

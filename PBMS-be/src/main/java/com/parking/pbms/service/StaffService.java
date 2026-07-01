@@ -13,5 +13,7 @@ public interface StaffService {
     List<Floor> getFloors();
     StaffTicketResponse checkIn(StaffCheckInRequest request, String username);
     StaffTicketResponse checkOut(StaffCheckOutRequest request, String username);
+    StaffTicketResponse previewCheckOut(String ticketNoOrQrToken, String laneCode, String username);
     List<StaffTransactionResponse> getTransactionHistory(String username);
+    java.util.Map<String, Object> getPreBookedDetails(String code);
 }

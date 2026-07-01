@@ -13,8 +13,9 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { cls } from "../common/ui";
+import violationRuleService from "../../../services/violationRuleService";
 
-interface ViolationRule {
+export interface ViolationRule {
   id: string;
   ruleName: string;
   ticketType: "SINGLE" | "DAY" | "MONTHLY";
@@ -25,95 +26,35 @@ interface ViolationRule {
   isActive: boolean;
 }
 
-const DEFAULT_RULES: ViolationRule[] = [
-  {
-    id: "RULE_SINGLE_MOTO",
-    ruleName: "Thẻ lượt xe máy quá giờ",
-    ticketType: "SINGLE",
-    vehicleType: "MOTORCYCLE",
-    maxDurationHours: 6,
-    penaltyPerHour: 10000,
-    description: "Áp dụng cho thẻ lượt xe máy đỗ quá 6 giờ kể từ thời điểm check-in. Phạt 10.000đ cho mỗi giờ quá hạn tiếp theo.",
-    isActive: true,
-  },
-  {
-    id: "RULE_SINGLE_CAR",
-    ruleName: "Thẻ lượt ô tô quá giờ",
-    ticketType: "SINGLE",
-    vehicleType: "CAR",
-    maxDurationHours: 6,
-    penaltyPerHour: 50000,
-    description: "Áp dụng cho thẻ lượt ô tô đỗ quá 6 giờ kể từ thời điểm check-in. Phạt 50.000đ cho mỗi giờ quá hạn tiếp theo.",
-    isActive: true,
-  },
-  {
-    id: "RULE_DAY_EXPIRED_MOTO",
-    ruleName: "Thẻ ngày hết hạn khi checkout (Xe máy)",
-    ticketType: "DAY",
-    vehicleType: "MOTORCYCLE",
-    maxDurationHours: 0,
-    penaltyPerHour: 10000,
-    description: "Áp dụng khi thẻ ngày xe máy bị hết hạn tại thời điểm check-out. Tính phạt 10.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.",
-    isActive: true,
-  },
-  {
-    id: "RULE_DAY_EXPIRED_CAR",
-    ruleName: "Thẻ ngày hết hạn khi checkout (Ô tô)",
-    ticketType: "DAY",
-    vehicleType: "CAR",
-    maxDurationHours: 0,
-    penaltyPerHour: 50000,
-    description: "Áp dụng khi thẻ ngày ô tô bị hết hạn tại thời điểm check-out. Tính phạt 50.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.",
-    isActive: true,
-  },
-  {
-    id: "RULE_MONTHLY_EXPIRED_MOTO",
-    ruleName: "Thẻ tháng hết hạn khi checkout (Xe máy)",
-    ticketType: "MONTHLY",
-    vehicleType: "MOTORCYCLE",
-    maxDurationHours: 0,
-    penaltyPerHour: 10000,
-    description: "Áp dụng khi thẻ tháng xe máy đã hết hạn tại thời điểm check-out. Tính phạt 10.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.",
-    isActive: true,
-  },
-  {
-    id: "RULE_MONTHLY_EXPIRED_CAR",
-    ruleName: "Thẻ tháng hết hạn khi checkout (Ô tô)",
-    ticketType: "MONTHLY",
-    vehicleType: "CAR",
-    maxDurationHours: 0,
-    penaltyPerHour: 50000,
-    description: "Áp dụng khi thẻ tháng ô tô đã hết hạn tại thời điểm check-out. Tính phạt 50.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.",
-    isActive: true,
-  },
-];
-
 export default function CardViolationRules() {
-  const [rules, setRules] = useState<ViolationRule[]>(() => {
-    const saved = localStorage.getItem("card-violation-rules");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Nếu dữ liệu đã lưu trước đó không đủ 6 luật (thiếu luật ô tô mới), ưu tiên nạp mặc định
-      if (parsed.length === 6) {
-        return parsed;
-      }
-    }
-    return DEFAULT_RULES;
-  });
+  const [rules, setRules] = useState<ViolationRule[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [editingRule, setEditingRule] = useState<ViolationRule | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const fetchRules = async () => {
+    try {
+      setLoading(true);
+      const data = await violationRuleService.getAllRules();
+      setRules(data);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Lỗi khi lấy danh sách luật vi phạm");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem("card-violation-rules", JSON.stringify(rules));
-  }, [rules]);
+    fetchRules();
+  }, []);
 
   const handleEditClick = (rule: ViolationRule) => {
     setEditingRule({ ...rule });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingRule) return;
 
     if (editingRule.maxDurationHours < 0) {
@@ -125,13 +66,16 @@ export default function CardViolationRules() {
       return;
     }
 
-    setRules(prev =>
-      prev.map(r => (r.id === editingRule.id ? editingRule : r))
-    );
-    setEditingRule(null);
-    setErrorMsg(null);
-    setSuccessMsg("Cập nhật luật vi phạm thẻ thành công!");
-    setTimeout(() => setSuccessMsg(null), 2500);
+    try {
+      const updatedRule = await violationRuleService.updateRule(editingRule.id, editingRule);
+      setRules(prev => prev.map(r => (r.id === updatedRule.id ? updatedRule : r)));
+      setEditingRule(null);
+      setErrorMsg(null);
+      setSuccessMsg("Cập nhật luật vi phạm thẻ thành công!");
+      setTimeout(() => setSuccessMsg(null), 2500);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Lỗi khi cập nhật luật vi phạm");
+    }
   };
 
   return (
@@ -154,6 +98,12 @@ export default function CardViolationRules() {
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-lg flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
           <span className="font-medium">{successMsg}</span>
+        </div>
+      )}
+      {errorMsg && !editingRule && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2 animate-fadeIn">
+          <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
+          <span className="font-medium">Lỗi: {errorMsg}</span>
         </div>
       )}
 

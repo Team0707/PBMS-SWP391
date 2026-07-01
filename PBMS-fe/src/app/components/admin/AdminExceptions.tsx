@@ -280,11 +280,6 @@ export default function AdminExceptions() {
                             <XCircle className="w-3 h-3" /> Từ chối
                           </button>
                         )}
-                        {r.status !== "RESOLVED" && r.status !== "APPROVED" && r.status !== "REJECTED" && (
-                          <button onClick={() => { setAssignItem(r); setAssignStaffId(r.assignedStaffId || ""); }} className="h-6 px-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs rounded border border-purple-200 flex items-center gap-1 cursor-pointer">
-                            <UserCheck className="w-3 h-3" /> Phân công
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -404,37 +399,6 @@ export default function AdminExceptions() {
               <button onClick={() => setRejectItem(null)} className={cls.btnSecondary}>Hủy</button>
               <button onClick={handleReject} disabled={!rejectReason.trim()} className={`${cls.btnDanger} ${!rejectReason.trim() ? "opacity-50 cursor-not-allowed" : ""}`}>
                 Từ chối
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Assign Modal */}
-      {assignItem && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5 border border-gray-150">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-gray-700">Phân công nhân viên</h3>
-              <button onClick={() => setAssignItem(null)}><X className="w-5 h-5 text-gray-400" /></button>
-            </div>
-            <p className="text-sm text-gray-600 mb-3">Yêu cầu: <strong className="font-mono text-blue-700">{assignItem.requestNo}</strong></p>
-            <select
-              className={`${cls.select} w-full`}
-              value={assignStaffId}
-              onChange={e => setAssignStaffId(e.target.value ? Number(e.target.value) : "")}
-            >
-              <option value="">-- Chọn nhân viên --</option>
-              {staffs.map(s => (
-                <option key={s.staffId} value={s.staffId}>
-                  {s.fullName} ({s.staffCode})
-                </option>
-              ))}
-            </select>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setAssignItem(null)} className={cls.btnSecondary}>Hủy</button>
-              <button onClick={handleAssign} disabled={!assignStaffId} className={`${cls.btnSearch} ${!assignStaffId ? "opacity-50 cursor-not-allowed" : ""}`}>
-                <UserCheck className="w-3.5 h-3.5" /> Phân công
               </button>
             </div>
           </div>

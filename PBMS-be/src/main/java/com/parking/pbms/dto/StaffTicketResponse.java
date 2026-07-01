@@ -20,5 +20,7 @@ public record StaffTicketResponse(
         BigDecimal feeAmount,
         String status,
         String message,
-        String violationReason
+        String violationReason,
+        String entryImage,
+        String exitImage
 ) {}

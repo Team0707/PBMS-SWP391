@@ -1,6 +1,7 @@
 import { authService, ApiResponse } from "./authService";
+import { safeJson } from "../utils/apiHelper";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.17:8080/api/v1";
 
 export interface CardGroupDto {
   cardGroupId: number;
@@ -57,7 +58,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<CardGroupDto[]> = await response.json();
+    const result: ApiResponse<CardGroupDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách nhóm thẻ.");
     }
@@ -75,7 +76,7 @@ export const adminCardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<CardGroupDto> = await response.json();
+    const result: ApiResponse<CardGroupDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Tạo nhóm thẻ thất bại.");
     }
@@ -93,7 +94,7 @@ export const adminCardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<CardGroupDto> = await response.json();
+    const result: ApiResponse<CardGroupDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Cập nhật nhóm thẻ thất bại.");
     }
@@ -111,7 +112,7 @@ export const adminCardService = {
     });
 
     if (!response.ok) {
-      const result: ApiResponse<any> = await response.json();
+      const result: ApiResponse<any> = await safeJson(response);
       throw new Error(result.message || "Xóa nhóm thẻ thất bại.");
     }
   },
@@ -134,7 +135,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<CardHistoryDto[]> = await response.json();
+    const result: ApiResponse<CardHistoryDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải lịch sử thẻ.");
     }
@@ -151,7 +152,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<UserDto[]> = await response.json();
+    const result: ApiResponse<UserDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách người dùng.");
     }
@@ -169,7 +170,7 @@ export const adminCardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<UserDto> = await response.json();
+    const result: ApiResponse<UserDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Tạo người dùng thất bại.");
     }
@@ -187,7 +188,7 @@ export const adminCardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<UserDto> = await response.json();
+    const result: ApiResponse<UserDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Cập nhật người dùng thất bại.");
     }
@@ -204,7 +205,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<UserDto> = await response.json();
+    const result: ApiResponse<UserDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Khóa tài khoản thất bại.");
     }
@@ -221,7 +222,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<CustomerDto[]> = await response.json();
+    const result: ApiResponse<CustomerDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách khách hàng.");
     }
@@ -238,7 +239,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<CustomerCardDto[]> = await response.json();
+    const result: ApiResponse<CustomerCardDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách thẻ của khách hàng.");
     }
@@ -256,7 +257,7 @@ export const adminCardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<CustomerDto> = await response.json();
+    const result: ApiResponse<CustomerDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Tạo khách hàng thất bại.");
     }
@@ -274,7 +275,7 @@ export const adminCardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<CustomerDto> = await response.json();
+    const result: ApiResponse<CustomerDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Cập nhật khách hàng thất bại.");
     }
@@ -291,7 +292,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<CustomerDto> = await response.json();
+    const result: ApiResponse<CustomerDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Khóa khách hàng thất bại.");
     }
@@ -317,7 +318,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<VehicleReportDto[]> = await response.json();
+    const result: ApiResponse<VehicleReportDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải báo cáo xe vào/ra.");
     }
@@ -334,7 +335,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<RequestSupportDto[]> = await response.json();
+    const result: ApiResponse<RequestSupportDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách yêu cầu.");
     }
@@ -352,7 +353,7 @@ export const adminCardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<RequestSupportDto> = await response.json();
+    const result: ApiResponse<RequestSupportDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Gửi yêu cầu thất bại.");
     }
@@ -369,7 +370,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<RequestSupportDto[]> = await response.json();
+    const result: ApiResponse<RequestSupportDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách yêu cầu.");
     }
@@ -386,7 +387,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<RequestSupportDto> = await response.json();
+    const result: ApiResponse<RequestSupportDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Duyệt yêu cầu thất bại.");
     }
@@ -403,7 +404,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<RequestSupportDto> = await response.json();
+    const result: ApiResponse<RequestSupportDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Từ chối yêu cầu thất bại.");
     }
@@ -420,7 +421,7 @@ export const adminCardService = {
       }
     });
 
-    const result: ApiResponse<RequestSupportDto> = await response.json();
+    const result: ApiResponse<RequestSupportDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Phân công nhân viên thất bại.");
     }
@@ -528,6 +529,8 @@ export interface VehicleReportDto {
   exitLaneName?: string;
   entryStaffName: string;
   exitStaffName?: string;
+  entryImage?: string;
+  exitImage?: string;
 }
 
 export interface RequestSupportDto {

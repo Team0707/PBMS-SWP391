@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Search, RotateCcw, Eye, List, X } from "lucide-react";
-import { QRCodeCanvas } from "qrcode.react";
 
 interface Ticket {
   id: number;
@@ -160,23 +159,19 @@ export default function ActiveTickets() {
               </button>
             </div>
             <div className="p-5">
-              <div className="flex gap-4 items-start">
-                <div className="border border-gray-200 rounded p-1.5 flex-shrink-0">
-                  <QRCodeCanvas value={detail.maVe} size={120} />
-                </div>
-                <div className="flex-1 space-y-2.5">
-                  {[
-                    { label: "Mã vé", value: detail.maVe },
-                    { label: "Biển số xe", value: detail.bienSo },
-                    { label: "Loại xe", value: detail.loaiXe },
-                    { label: "Thời gian vào", value: detail.tgVao },
-                    { label: "Thời gian gửi", value: detail.thoiGian },
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <div className="text-xs text-gray-500">{label}</div>
-                      <div className="text-sm font-semibold text-gray-800">{value}</div>
-                    </div>
-                  ))}
+              <div className="space-y-3.5">
+                {[
+                  { label: "Mã vé", value: detail.maVe },
+                  { label: "Biển số xe", value: detail.bienSo },
+                  { label: "Loại xe", value: detail.loaiXe },
+                  { label: "Thời gian vào", value: detail.tgVao },
+                  { label: "Thời gian gửi", value: detail.thoiGian },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-xs text-gray-500 font-medium">{label}</span>
+                    <span className="text-sm font-semibold text-gray-800">{value}</span>
+                  </div>
+                ))}
                   <div>
                     <div className="text-xs text-gray-500">Trạng thái</div>
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-200 tracking-wide mt-0.5">

@@ -18,5 +18,7 @@ public record VehicleReportResponse(
     String entryLaneName,
     String exitLaneName,
     String entryStaffName,
-    String exitStaffName
+    String exitStaffName,
+    String entryImage,
+    String exitImage
 ) {}

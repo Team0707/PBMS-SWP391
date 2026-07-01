@@ -10,4 +10,5 @@ public interface PaymentService {
     java.util.Map<String, String> handleVnPayIpn(java.util.Map<String, String> params);
     PaymentResponse getPaymentStatus(Long orderCode);
     void cancelPayment(Long orderCode, String reason);
+    void mockPaymentSuccess(Long orderCode);
 }

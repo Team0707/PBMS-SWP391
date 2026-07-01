@@ -5,6 +5,7 @@ import com.parking.pbms.dto.PaymentRequest;
 import com.parking.pbms.dto.PaymentResponse;
 import com.parking.pbms.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(@RequestBody PaymentRequest request) {
@@ -86,7 +90,7 @@ public class PaymentController {
 
         // Redirect nguoi dung ve Frontend.
         // Them ?ngrok-skip-browser-warning=true vao query de tuong thich voi moi phien ban Ngrok.
-        String frontendUrl = "http://localhost:5173/payment/success";
+        String redirectUrl = this.frontendUrl + "/payment/success";
         StringBuilder query = new StringBuilder();
         query.append("ngrok-skip-browser-warning=true");
         for (java.util.Map.Entry<String, String> entry : params.entrySet()) {
@@ -97,7 +101,7 @@ public class PaymentController {
                      .append(java.net.URLEncoder.encode(entry.getValue(), "UTF-8"));
             } catch (Exception ignored) {}
         }
-        response.sendRedirect(frontendUrl + "?" + query.toString());
+        response.sendRedirect(redirectUrl + "?" + query.toString());
     }
 
     @GetMapping("/status/{orderCode}")
@@ -129,6 +133,24 @@ public class PaymentController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
                     new ApiResponse<>(400, "Lỗi hủy thanh toán: " + e.getMessage(), null)
+            );
+        }
+    }
+
+    @PostMapping("/mock-success/{orderCode}")
+    public ResponseEntity<ApiResponse<Object>> mockPaymentSuccess(@PathVariable Long orderCode) {
+        try {
+            paymentService.mockPaymentSuccess(orderCode);
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            200,
+                            "Giả lập thanh toán thành công",
+                            null
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ApiResponse<>(400, "Lỗi giả lập thanh toán: " + e.getMessage(), null)
             );
         }
     }

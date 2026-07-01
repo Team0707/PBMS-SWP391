@@ -1,6 +1,7 @@
 import { authService, ApiResponse } from "./authService";
+import { safeJson } from "../utils/apiHelper";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.17:8080/api/v1";
 
 export interface MonthlyCardDto {
   id: number;
@@ -57,7 +58,7 @@ export const cardService = {
       }
     });
 
-    const result: ApiResponse<MonthlyCardDto[]> = await response.json();
+    const result: ApiResponse<MonthlyCardDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách thẻ.");
     }
@@ -75,7 +76,7 @@ export const cardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<MonthlyCardDto> = await response.json();
+    const result: ApiResponse<MonthlyCardDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Đăng ký thẻ thất bại.");
     }
@@ -93,7 +94,7 @@ export const cardService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<MonthlyCardDto> = await response.json();
+    const result: ApiResponse<MonthlyCardDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Gia hạn thẻ thất bại.");
     }
@@ -110,7 +111,7 @@ export const cardService = {
       }
     });
 
-    const result: ApiResponse<CardGroupDto[]> = await response.json();
+    const result: ApiResponse<CardGroupDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách nhóm thẻ.");
     }
@@ -128,7 +129,7 @@ export const cardService = {
       body: JSON.stringify({ reason: reason || "Người dùng chủ động hủy trên giao diện" })
     });
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<any> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể hủy thanh toán.");
     }
@@ -144,10 +145,26 @@ export const cardService = {
       }
     });
 
-    const result: ApiResponse<any> = await response.json();
+    const result: ApiResponse<any> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Lỗi kiểm tra trạng thái thanh toán.");
     }
     return result.data;
+  },
+
+  async mockPaymentSuccess(orderCode: number): Promise<void> {
+    const token = authService.getToken();
+    const response = await fetch(`${API_URL}/payments/mock-success/${orderCode}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    const result: ApiResponse<any> = await safeJson(response);
+    if (!response.ok) {
+      throw new Error(result.message || "Lỗi khi giả lập thanh toán.");
+    }
   }
 };

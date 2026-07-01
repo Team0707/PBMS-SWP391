@@ -13,5 +13,7 @@ public record StaffTransactionResponse(
         LocalDateTime tgRa,
         BigDecimal phi,
         String nhanVien,
-        String trangThai
+        String trangThai,
+        String entryImage,
+        String exitImage
 ) {}

@@ -1,6 +1,7 @@
 import { authService, ApiResponse } from "./authService";
+import { safeJson } from "../utils/apiHelper";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.17:8080/api/v1";
 
 export interface LaneDto {
   laneId: number;
@@ -29,6 +30,7 @@ export interface StaffCheckInRequest {
   preBookedCode?: string;
   floorCode: string;
   laneCode: string;
+  entryImage?: string;
 }
 
 export interface StaffCheckOutRequest {
@@ -36,6 +38,7 @@ export interface StaffCheckOutRequest {
   laneCode: string;
   floorCode?: string;
   paymentMethod?: "CASH" | "VNPAY";
+  exitImage?: string;
 }
 
 export interface StaffTicketResponse {
@@ -56,6 +59,8 @@ export interface StaffTicketResponse {
   status: string;
   message?: string;
   violationReason?: string;
+  entryImage?: string;
+  exitImage?: string;
 }
 
 export interface SlotDto {
@@ -115,6 +120,8 @@ export interface TransactionDto {
   phi: number;
   nhanVien: string;
   trangThai: string;
+  entryImage?: string;
+  exitImage?: string;
 }
 
 export interface WorkShiftDto {
@@ -184,7 +191,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<LaneDto[]> = await response.json();
+    const result: ApiResponse<LaneDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách làn xe.");
     }
@@ -201,7 +208,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<FloorDto[]> = await response.json();
+    const result: ApiResponse<FloorDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách tầng.");
     }
@@ -219,7 +226,7 @@ export const staffService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<StaffTicketResponse> = await response.json();
+    const result: ApiResponse<StaffTicketResponse> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Quét xe vào thất bại.");
     }
@@ -237,9 +244,26 @@ export const staffService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<StaffTicketResponse> = await response.json();
+    const result: ApiResponse<StaffTicketResponse> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Quét xe ra thất bại.");
+    }
+    return result.data;
+  },
+
+  async previewCheckOut(ticketNoOrQrToken: string, laneCode: string): Promise<StaffTicketResponse> {
+    const token = authService.getToken();
+    const response = await fetch(`${API_URL}/staff/check-out-preview?ticketNoOrQrToken=${encodeURIComponent(ticketNoOrQrToken)}&laneCode=${encodeURIComponent(laneCode)}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    const result: ApiResponse<StaffTicketResponse> = await safeJson(response);
+    if (!response.ok) {
+      throw new Error(result.message || "Xem trước thông tin xe ra thất bại.");
     }
     return result.data;
   },
@@ -254,7 +278,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<TransactionDto[]> = await response.json();
+    const result: ApiResponse<TransactionDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải lịch sử giao dịch.");
     }
@@ -276,7 +300,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<SlotDto[]> = await response.json();
+    const result: ApiResponse<SlotDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách slot đỗ xe.");
     }
@@ -296,7 +320,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<ZoneDto[]> = await response.json();
+    const result: ApiResponse<ZoneDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách zone đỗ xe.");
     }
@@ -314,7 +338,7 @@ export const staffService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<SlotDto> = await response.json();
+    const result: ApiResponse<SlotDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Cập nhật trạng thái slot đỗ xe thất bại.");
     }
@@ -334,7 +358,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<SlotStatsResponse> = await response.json();
+    const result: ApiResponse<SlotStatsResponse> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải thống kê slot đỗ xe.");
     }
@@ -354,7 +378,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<StaffAssignmentDto[]> = await response.json();
+    const result: ApiResponse<StaffAssignmentDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách phân công.");
     }
@@ -372,7 +396,7 @@ export const staffService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<StaffAssignmentDto> = await response.json();
+    const result: ApiResponse<StaffAssignmentDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Tạo phân công nhân viên thất bại.");
     }
@@ -390,7 +414,7 @@ export const staffService = {
       body: JSON.stringify(payload)
     });
 
-    const result: ApiResponse<StaffAssignmentDto> = await response.json();
+    const result: ApiResponse<StaffAssignmentDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Đổi nhân viên thất bại.");
     }
@@ -407,7 +431,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<StaffAssignmentDto> = await response.json();
+    const result: ApiResponse<StaffAssignmentDto> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Hủy phân công thất bại.");
     }
@@ -424,7 +448,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<StaffMinimalDto[]> = await response.json();
+    const result: ApiResponse<StaffMinimalDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách nhân viên.");
     }
@@ -441,7 +465,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<WorkShiftDto[]> = await response.json();
+    const result: ApiResponse<WorkShiftDto[]> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải danh sách ca trực.");
     }
@@ -458,7 +482,7 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<StaffAssignmentDto | null> = await response.json();
+    const result: ApiResponse<StaffAssignmentDto | null> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể tải thông tin ca trực của bạn.");
     }
@@ -479,9 +503,26 @@ export const staffService = {
       }
     });
 
-    const result: ApiResponse<string> = await response.json();
+    const result: ApiResponse<string> = await safeJson(response);
     if (!response.ok) {
       throw new Error(result.message || "Không thể kiểm tra trạng thái thanh toán.");
+    }
+    return result.data;
+  },
+
+  async getPreBookedDetails(code: string): Promise<{ plate: string; type: string; status: string }> {
+    const token = authService.getToken();
+    const response = await fetch(`${API_URL}/staff/prebooked/${code}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    const result: ApiResponse<{ plate: string; type: string; status: string }> = await safeJson(response);
+    if (!response.ok) {
+      throw new Error(result.message || "Không thể tải thông tin thẻ/đặt trước.");
     }
     return result.data;
   }

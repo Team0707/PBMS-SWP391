@@ -11,7 +11,7 @@ import {
 import { authService } from "../../../services/authService";
 import { QRCodeSVG } from "qrcode.react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.17:8080/api/v1";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PaymentMethod = "VNPAY" | "CASH";
@@ -30,6 +30,8 @@ export interface PaymentModalProps {
   feeAmount: number;
 }
 
+import { safeJson } from "../../../utils/apiHelper";
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 async function apiFetch(path: string, body?: object) {
   const token = authService.getToken();
@@ -41,7 +43,7 @@ async function apiFetch(path: string, body?: object) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  const json = await res.json();
+  const json: any = await safeJson(res);
   if (!res.ok) throw new Error(json.message || "API error");
   return json.data;
 }

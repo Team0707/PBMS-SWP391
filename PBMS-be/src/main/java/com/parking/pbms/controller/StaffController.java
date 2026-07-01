@@ -77,6 +77,19 @@ public class StaffController {
         );
     }
 
+    @GetMapping("/check-out-preview")
+    public ResponseEntity<ApiResponse<StaffTicketResponse>> previewCheckOut(
+            @RequestParam String ticketNoOrQrToken,
+            @RequestParam String laneCode,
+            Principal principal
+    ) {
+        String username = principal.getName();
+        StaffTicketResponse response = staffService.previewCheckOut(ticketNoOrQrToken, laneCode, username);
+        return ResponseEntity.ok(
+                ApiResponse.success(200, "Xem trước thông tin vé ra", response)
+        );
+    }
+
     /**
      * Staff bam xac nhan thanh toan sau khi checkout:
      * - CASH: cap nhat ngay ticket -> PAID, tao payment record thanh cong
@@ -144,6 +157,16 @@ public class StaffController {
         StaffAssignmentResponse response = assignmentService.getActiveAssignmentForStaff(username);
         return ResponseEntity.ok(
                 ApiResponse.success(200, "Lấy phân công ca trực hôm nay thành công", response)
+        );
+    }
+
+    @GetMapping("/prebooked/{code}")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getPreBookedDetails(
+            @PathVariable("code") String code
+    ) {
+        java.util.Map<String, Object> details = staffService.getPreBookedDetails(code);
+        return ResponseEntity.ok(
+                ApiResponse.success(200, "Lấy thông tin đặt trước/thẻ tháng thành công", details)
         );
     }
 }

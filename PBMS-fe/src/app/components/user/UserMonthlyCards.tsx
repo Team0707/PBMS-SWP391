@@ -38,11 +38,6 @@ type NewMonthlyCard = Omit<
   "id" | "cardNo" | "trangThai" | "soNgayConLai"
 >;
 
-const initialCards: MonthlyCard[] = [
-  { id: 1, cardNo: "CARD000001", nhomThe: "THẺ THÁNG XE MÁY", loaiXe: "Xe máy", bienSo: "29X1-123.45", ngayDangKy: "2024-01-05", ngayHetHan: "2024-12-31", trangThai: "Hoạt động", soNgayConLai: 351 },
-  { id: 5, cardNo: "CARD000005", nhomThe: "THẺ THÁNG XE MÁY", loaiXe: "Xe máy", bienSo: "30F1-678.90", ngayDangKy: "2023-12-01", ngayHetHan: "2024-01-10", trangThai: "Hết hạn", soNgayConLai: -5 },
-];
-
 
 function parseDateOnly(dateStr: string): Date {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -418,12 +413,6 @@ function DetailModal({ card, onClose }: { card: MonthlyCard; onClose: () => void
           <button onClick={onClose} className="text-white/80 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-5 space-y-3">
-          <div className="flex flex-col items-center gap-1.5 py-2 bg-gray-50 rounded-lg border border-gray-200">
-            <div className="border-2 border-blue-500 rounded-lg p-1.5 bg-white shadow-sm">
-              <img src={buildCardQrUrl(card.cardNo, 130)} alt={`QR thẻ ${card.cardNo}`} width={130} height={130} className="object-contain" draggable={false} />
-            </div>
-            <p className="text-[10px] text-gray-400">Xuất trình mã QR này cho nhân viên quét khi vào/ra bãi</p>
-          </div>
           <div className="space-y-0">
           {[
             ["CardNo", card.cardNo],
@@ -550,7 +539,28 @@ function PaymentQrModal({ orderCode, qrCode, checkoutUrl, onClose, onDone }: { o
         {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
           {!isPaid && (
-            <button onClick={handleCancel} className="px-4 py-1.5 border border-red-300 text-red-600 text-sm rounded hover:bg-red-50 transition-colors">Hủy thanh toán</button>
+            <>
+              <button 
+                onClick={handleCancel} 
+                className="px-4 py-1.5 border border-red-300 text-red-600 text-sm rounded hover:bg-red-50 transition-colors"
+              >
+                Hủy thanh toán
+              </button>
+              <button
+                onClick={async () => {
+                  if (!orderCode) return;
+                  try {
+                    await cardService.mockPaymentSuccess(orderCode);
+                    setIsPaid(true);
+                  } catch (err: any) {
+                    alert(err.message || "Lỗi khi giả lập thanh toán.");
+                  }
+                }}
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded transition-colors"
+              >
+                Giả lập Thanh toán (Test)
+              </button>
+            </>
           )}
           <button
             onClick={onDone}
