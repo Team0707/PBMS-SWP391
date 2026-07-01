@@ -1057,3 +1057,17 @@ PRINT N'Tất cả ParkingSlots đã được đặt thành AVAILABLE.';
 PRINT N'Tài khoản mẫu: admin, staff01, staff02, user01, user02';
 PRINT N'Mật khẩu chung: 123456';
 GO
+
+/*
+====================================================================
+ PARKING BUILDING MANAGEMENT SYSTEM (PBMS)
+ Database: Microsoft SQL Server
+ Generated from frontend PBMS-fe(1)
+
+ LUU YY:
+ - Script KHONG xoa database/bang cu.
+ - CardNo duoc tu dong sinh tu CardID, khong co cot DisplayCode/CardCode.
+ - Mat khau mau cua admin, staff01, staff02, user01, user02 la: 123456
+ - PasswordHash da ma hoa BCrypt, dung duoc voi Spring Security.
+====================================================================
+*/
