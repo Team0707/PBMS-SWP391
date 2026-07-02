@@ -16,4 +16,5 @@ public interface StaffService {
     StaffTicketResponse previewCheckOut(String ticketNoOrQrToken, String laneCode, String username);
     List<StaffTransactionResponse> getTransactionHistory(String username);
     java.util.Map<String, Object> getPreBookedDetails(String code);
+    java.util.Map<String, Object> getCardInfo(String cardNo);
 }

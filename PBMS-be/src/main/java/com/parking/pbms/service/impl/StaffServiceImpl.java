@@ -96,6 +96,17 @@ public class StaffServiceImpl implements StaffService {
                 Vehicle vehicle = vehicleRepository.findById(card.getVehicleId())
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy phương tiện đăng ký cho thẻ tháng này"));
 
+                // Kiểm tra loại xe của thẻ tháng có khớp với loại xe của làn trực không
+                String laneVehicleType = lane.getVehicleType().toUpperCase();
+                String cardVehicleType = vehicle.getVehicleType().toUpperCase();
+                if (!"BOTH".equals(laneVehicleType) && !laneVehicleType.equals(cardVehicleType)) {
+                    String laneTypeDisplay = "MOTORCYCLE".equals(laneVehicleType) ? "xe máy" : "ô tô";
+                    String cardTypeDisplay = "MOTORCYCLE".equals(cardVehicleType) ? "xe máy" : "ô tô";
+                    throw new RuntimeException(
+                        "Sai làn trực! Thẻ tháng " + cardTypeDisplay + " không được phép đi vào làn " + laneTypeDisplay + ". Vui lòng chọn đúng làn xe."
+                    );
+                }
+
                 if (!vehicle.getPlateNo().trim().equalsIgnoreCase(plateNo)) {
                     throw new RuntimeException("Biển số xe không khớp. Thẻ đăng ký biển: " + vehicle.getPlateNo());
                 }
@@ -664,5 +675,32 @@ public class StaffServiceImpl implements StaffService {
         } else {
             throw new RuntimeException("Mã đặt trước không hợp lệ (Phải bắt đầu bằng CARD hoặc RES)");
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> getCardInfo(String cardNo) {
+        String cleanCode = cardNo.trim().toUpperCase();
+        Card card = cardRepository.findByCardNo(cleanCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thẻ tháng: " + cleanCode));
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("status", card.getStatus());
+
+        if (card.getVehicleId() != null) {
+            Vehicle vehicle = vehicleRepository.findById(card.getVehicleId()).orElse(null);
+            if (vehicle != null) {
+                result.put("plateNumber", vehicle.getPlateNo());
+                result.put("vehicleType", vehicle.getVehicleType());
+            } else {
+                result.put("plateNumber", "");
+                result.put("vehicleType", "");
+            }
+        } else {
+            result.put("plateNumber", "");
+            result.put("vehicleType", "");
+        }
+
+        return result;
     }
 }

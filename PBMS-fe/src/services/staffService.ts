@@ -525,5 +525,26 @@ export const staffService = {
       throw new Error(result.message || "Không thể tải thông tin thẻ/đặt trước.");
     }
     return result.data;
+  },
+
+  /**
+   * Tra cứu nhanh thông tin thẻ tháng theo mã thẻ (VD: CARD000001).
+   * Dùng để tự động điền biển số khi nhân viên nhập mã thẻ.
+   */
+  async getCardInfo(cardNo: string): Promise<{ plateNumber: string; vehicleType: string; status: string }> {
+    const token = authService.getToken();
+    const response = await fetch(`${API_URL}/staff/cards/${encodeURIComponent(cardNo)}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    const result: ApiResponse<{ plateNumber: string; vehicleType: string; status: string }> = await safeJson(response);
+    if (!response.ok) {
+      throw new Error(result.message || "Không thể tải thông tin thẻ tháng.");
+    }
+    return result.data;
   }
 };
