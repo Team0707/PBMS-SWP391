@@ -2,7 +2,7 @@
 
 Hệ thống quản lý và đặt chỗ bãi đỗ xe thông minh (PBMS) bao gồm hai phần chính:
 - **Frontend (FE)**: Viết bằng React, TypeScript, Tailwind CSS, Vite.
-- **Backend (BE)**: Viết bằng Java Spring Boot, Spring Data JPA, kết nối cơ sở dữ liệu MySQL.
+- **Backend (BE)**: Viết bằng Java Spring Boot, Spring Data JPA, kết nối cơ sở dữ liệu SQL Server.
 
 ---
 

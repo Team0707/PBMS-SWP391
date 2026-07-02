@@ -199,13 +199,21 @@ public class UserCardServiceImpl implements UserCardService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhóm thẻ của thẻ."));
 
         LocalDate oldExpiry = card.getExpireAt();
-        LocalDate newExpiry = LocalDate.parse(request.newExpiry());
+        LocalDate today = LocalDate.now();
 
-        // Update Card - Do not set to active yet! Wait for webhook.
-        // We will keep the old expiry. The new expiry is saved in CardHistory.
-        // Wait, CardHistory already stores `newExpireAt`. So the webhook can apply it.
-        // But what if it's currently expired? We just wait for webhook.
-        
+        // Tính ngày hết hạn mới dựa trên trạng thái thẻ hiện tại trong DB:
+        // - Nếu thẻ đã hết hạn (ExpireAt < ngày hiện tại): cộng từ hôm nay
+        // - Nếu thẻ còn hiệu lực: cộng dồn từ ngày hết hạn cũ
+        boolean isExpired = (oldExpiry == null || oldExpiry.isBefore(today));
+        LocalDate newExpiry = isExpired
+                ? today.plusMonths(request.duration())
+                : oldExpiry.plusMonths(request.duration());
+
+        // Cập nhật thẻ ngay: gán ExpireAt mới và đảm bảo trạng thái ACTIVE
+        card.setExpireAt(newExpiry);
+        card.setStatus("ACTIVE");
+        cardRepository.save(card);
+
         java.math.BigDecimal calculatedAmount = calculateAmount(cardGroup, request.duration());
 
         // Create Payment

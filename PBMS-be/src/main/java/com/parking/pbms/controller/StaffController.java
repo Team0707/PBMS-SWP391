@@ -169,4 +169,18 @@ public class StaffController {
                 ApiResponse.success(200, "Lấy thông tin đặt trước/thẻ tháng thành công", details)
         );
     }
+
+    /**
+     * Tra cứu nhanh thông tin thẻ tháng theo mã thẻ (VD: CARD000001).
+     * Trả về: plateNumber (biển số), vehicleType (loại xe), status (trạng thái thẻ).
+     */
+    @GetMapping("/cards/{cardNo}")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getCardInfo(
+            @PathVariable("cardNo") String cardNo
+    ) {
+        java.util.Map<String, Object> info = staffService.getCardInfo(cardNo);
+        return ResponseEntity.ok(
+                ApiResponse.success(200, "Lấy thông tin thẻ tháng thành công", info)
+        );
+    }
 }

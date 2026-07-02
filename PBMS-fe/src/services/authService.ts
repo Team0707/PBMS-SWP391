@@ -17,7 +17,7 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5173/api/v1";
 
 export const authService = {
   async login(username: string, password: string, remember = false): Promise<{ role: UserRole; name: string }> {
@@ -120,7 +120,6 @@ export const authService = {
     phone: string;
     address?: string;
     newPassword?: string;
-    oldPassword?: string;
   }): Promise<UserProfile> {
     const token = this.getToken();
     const response = await fetch(`${API_URL}/profile`, {

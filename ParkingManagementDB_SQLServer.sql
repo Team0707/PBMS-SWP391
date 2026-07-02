@@ -4,7 +4,7 @@
  Database: Microsoft SQL Server
  Generated from frontend PBMS-fe(1)
 
- LUU Y:
+ LUU YY:
  - Script KHONG xoa database/bang cu.
  - CardNo duoc tu dong sinh tu CardID, khong co cot DisplayCode/CardCode.
  - Mat khau mau cua admin, staff01, staff02, user01, user02 la: 123456
@@ -998,52 +998,6 @@ LEFT JOIN dbo.Staff exitStaff ON exitStaff.StaffID = pt.ExitStaffID
 LEFT JOIN dbo.Accounts exitAccount ON exitAccount.AccountID = exitStaff.AccountID;
 GO
 
-IF OBJECT_ID(N'dbo.ViolationRules', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.ViolationRules (
-        RuleID              VARCHAR(50) PRIMARY KEY,
-        RuleName            NVARCHAR(100) NOT NULL,
-        TicketType          VARCHAR(20) NOT NULL,
-        VehicleType         VARCHAR(20) NOT NULL,
-        MaxDurationHours    INT NOT NULL CONSTRAINT DF_ViolationRules_MaxDuration DEFAULT 0,
-        PenaltyPerHour      DECIMAL(18,2) NOT NULL CONSTRAINT DF_ViolationRules_Penalty DEFAULT 0,
-        Description         NVARCHAR(500) NOT NULL,
-        IsActive            BIT NOT NULL CONSTRAINT DF_ViolationRules_IsActive DEFAULT 1,
-        CreatedAt           DATETIME2(0) NOT NULL CONSTRAINT DF_ViolationRules_CreatedAt DEFAULT SYSDATETIME(),
-        UpdatedAt           DATETIME2(0) NOT NULL CONSTRAINT DF_ViolationRules_UpdatedAt DEFAULT SYSDATETIME(),
-        CONSTRAINT CK_ViolationRules_TicketType CHECK (TicketType IN ('SINGLE', 'DAY', 'MONTHLY')),
-        CONSTRAINT CK_ViolationRules_VehicleType CHECK (VehicleType IN ('MOTORCYCLE', 'CAR')),
-        CONSTRAINT CK_ViolationRules_Duration CHECK (MaxDurationHours >= 0),
-        CONSTRAINT CK_ViolationRules_Penalty CHECK (PenaltyPerHour >= 0)
-    );
-END;
-GO
-
-IF NOT EXISTS (SELECT 1 FROM dbo.ViolationRules WHERE RuleID = 'RULE_SINGLE_MOTO')
-    INSERT dbo.ViolationRules(RuleID, RuleName, TicketType, VehicleType, MaxDurationHours, PenaltyPerHour, Description)
-    VALUES ('RULE_SINGLE_MOTO', N'Thẻ lượt xe máy quá giờ', 'SINGLE', 'MOTORCYCLE', 6, 10000, N'Áp dụng cho thẻ lượt xe máy đỗ quá 6 giờ kể từ thời điểm check-in. Phạt 10.000đ cho mỗi giờ quá hạn tiếp theo.');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.ViolationRules WHERE RuleID = 'RULE_SINGLE_CAR')
-    INSERT dbo.ViolationRules(RuleID, RuleName, TicketType, VehicleType, MaxDurationHours, PenaltyPerHour, Description)
-    VALUES ('RULE_SINGLE_CAR', N'Thẻ lượt ô tô quá giờ', 'SINGLE', 'CAR', 6, 50000, N'Áp dụng cho thẻ lượt ô tô đỗ quá 6 giờ kể từ thời điểm check-in. Phạt 50.000đ cho mỗi giờ quá hạn tiếp theo.');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.ViolationRules WHERE RuleID = 'RULE_DAY_EXPIRED_MOTO')
-    INSERT dbo.ViolationRules(RuleID, RuleName, TicketType, VehicleType, MaxDurationHours, PenaltyPerHour, Description)
-    VALUES ('RULE_DAY_EXPIRED_MOTO', N'Thẻ ngày hết hạn khi checkout (Xe máy)', 'DAY', 'MOTORCYCLE', 0, 10000, N'Áp dụng khi thẻ ngày xe máy bị hết hạn tại thời điểm check-out. Tính phạt 10.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.ViolationRules WHERE RuleID = 'RULE_DAY_EXPIRED_CAR')
-    INSERT dbo.ViolationRules(RuleID, RuleName, TicketType, VehicleType, MaxDurationHours, PenaltyPerHour, Description)
-    VALUES ('RULE_DAY_EXPIRED_CAR', N'Thẻ ngày hết hạn khi checkout (Ô tô)', 'DAY', 'CAR', 0, 50000, N'Áp dụng khi thẻ ngày ô tô bị hết hạn tại thời điểm check-out. Tính phạt 50.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.ViolationRules WHERE RuleID = 'RULE_MONTHLY_EXPIRED_MOTO')
-    INSERT dbo.ViolationRules(RuleID, RuleName, TicketType, VehicleType, MaxDurationHours, PenaltyPerHour, Description)
-    VALUES ('RULE_MONTHLY_EXPIRED_MOTO', N'Thẻ tháng hết hạn khi checkout (Xe máy)', 'MONTHLY', 'MOTORCYCLE', 0, 10000, N'Áp dụng khi thẻ tháng xe máy đã hết hạn tại thời điểm check-out. Tính phạt 10.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.ViolationRules WHERE RuleID = 'RULE_MONTHLY_EXPIRED_CAR')
-    INSERT dbo.ViolationRules(RuleID, RuleName, TicketType, VehicleType, MaxDurationHours, PenaltyPerHour, Description)
-    VALUES ('RULE_MONTHLY_EXPIRED_CAR', N'Thẻ tháng hết hạn khi checkout (Ô tô)', 'MONTHLY', 'CAR', 0, 50000, N'Áp dụng khi thẻ tháng ô tô đã hết hạn tại thời điểm check-out. Tính phạt 50.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.');
-GO
-
 CREATE OR ALTER VIEW dbo.vw_FloorAvailability
 AS
 SELECT
@@ -1094,7 +1048,26 @@ IF EXISTS (
 )
     THROW 50003, N'Không tạo đủ hồ sơ User mẫu.', 1;
 
+-- Reset toàn bộ trạng thái bãi đỗ xe về AVAILABLE 
+UPDATE dbo.ParkingSlots SET Status = 'AVAILABLE';
+GO
+
 PRINT N'ParkingManagementDB đã được tạo/cập nhật thành công.';
+PRINT N'Tất cả ParkingSlots đã được đặt thành AVAILABLE.';
 PRINT N'Tài khoản mẫu: admin, staff01, staff02, user01, user02';
 PRINT N'Mật khẩu chung: 123456';
 GO
+
+/*
+====================================================================
+ PARKING BUILDING MANAGEMENT SYSTEM (PBMS)
+ Database: Microsoft SQL Server
+ Generated from frontend PBMS-fe(1)
+
+ LUU YY:
+ - Script KHONG xoa database/bang cu.
+ - CardNo duoc tu dong sinh tu CardID, khong co cot DisplayCode/CardCode.
+ - Mat khau mau cua admin, staff01, staff02, user01, user02 la: 123456
+ - PasswordHash da ma hoa BCrypt, dung duoc voi Spring Security.
+====================================================================
+*/

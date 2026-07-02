@@ -963,7 +963,33 @@ export default function VehicleEntry({ selectedFloorCode, selectedLaneCode }: Ve
                         placeholder="CARD000001 hoặc CARD000002"
                         value={preBookedCode}
                         disabled={Boolean(ticket)}
-                        onChange={(e) => setPreBookedCode(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setPreBookedCode(value);
+
+                          // Tự động điền biển số khi nhận ra mã CARD hợp lệ (CARD + 6 chữ số)
+                          const cleanVal = value.trim().toUpperCase();
+                          if (/^CARD\d{6}$/.test(cleanVal)) {
+                            staffService.getCardInfo(cleanVal)
+                              .then((info) => {
+                                if (info.plateNumber) {
+                                  setBienSo(info.plateNumber);
+                                }
+                                if (info.vehicleType) {
+                                  const vTypeMap: Record<string, string> = {
+                                    MOTORCYCLE: "Xe máy",
+                                    CAR: "Ô tô",
+                                  };
+                                  if (vTypeMap[info.vehicleType]) {
+                                    setLoaiXe(vTypeMap[info.vehicleType]);
+                                  }
+                                }
+                              })
+                              .catch(() => {
+                                // Bỏ qua lỗi tra cứu, nhân viên có thể nhập tay
+                              });
+                          }
+                        }}
                       />
                       
                       <button

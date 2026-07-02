@@ -918,10 +918,8 @@ export default function UserMonthlyCards() {
               </div>
               <div className="px-4 py-2.5 border-t border-gray-100 flex gap-2">
                 <button onClick={() => setDetailCard(card)} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded transition-colors"><Eye className="w-3.5 h-3.5" />Xem chi tiết</button>
-                {/* Chi hien nut Gia han neu the da het han hoac sap het han */}
-                {(card.trangThai === 'Hết hạn' || card.trangThai === 'Sắp hết hạn') && (
-                  <button onClick={() => handleOpenRenewModal(card)} className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 border border-emerald-200 hover:border-emerald-400 px-2.5 py-1 rounded transition-colors"><RefreshCw className="w-3.5 h-3.5" />Gia hạn</button>
-                )}
+                {/* Hien nut Gia han voi moi the ACTIVE / Sap het han / Het han */}
+                <button onClick={() => handleOpenRenewModal(card)} className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 border border-emerald-200 hover:border-emerald-400 px-2.5 py-1 rounded transition-colors"><RefreshCw className="w-3.5 h-3.5" />Gia hạn</button>
               </div>
             </div>
           ))
