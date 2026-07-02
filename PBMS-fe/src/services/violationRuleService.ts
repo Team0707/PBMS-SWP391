@@ -1,7 +1,7 @@
 import { ViolationRule } from '../app/components/admin/CardViolationRules';
 import { authService } from './authService';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.17:8080/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173/api/v1';
 
 class ViolationRuleService {
     async getAllRules(): Promise<ViolationRule[]> {

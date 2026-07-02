@@ -17,7 +17,7 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://192.168.1.17:8080/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5173/api/v1";
 
 export const authService = {
   async login(username: string, password: string, remember = false): Promise<{ role: UserRole; name: string }> {
