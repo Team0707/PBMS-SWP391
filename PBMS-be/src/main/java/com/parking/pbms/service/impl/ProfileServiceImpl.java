@@ -103,6 +103,12 @@ public class ProfileServiceImpl implements ProfileService {
         account.setPhone(phone);
 
         if (request.newPassword() != null && !request.newPassword().trim().isEmpty()) {
+            if (request.oldPassword() == null || request.oldPassword().trim().isEmpty()) {
+                throw new IllegalArgumentException("Vui lòng nhập mật khẩu cũ để đổi mật khẩu mới");
+            }
+            if (!passwordEncoder.matches(request.oldPassword().trim(), account.getPasswordHash())) {
+                throw new BadCredentialsException("Mật khẩu cũ không chính xác");
+            }
             account.setPasswordHash(passwordEncoder.encode(request.newPassword().trim()));
         }
 

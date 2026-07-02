@@ -77,6 +77,13 @@ export default function UserDashboard({
   const [errors, setErrors] = useState<FormErrors>({});
   const [saved, setSaved] = useState(false);
 
+  // Xác thực mật khẩu cũ trước khi đổi mật khẩu mới trong Profile Edit
+  const [oldPassword, setOldPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [oldPasswordError, setOldPasswordError] = useState("");
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [verifyingOldPassword, setVerifyingOldPassword] = useState(false);
+
   // Đồng hồ
   const [now, setNow] = useState(new Date());
 
@@ -155,6 +162,10 @@ export default function UserDashboard({
     setShowConfirmNewPassword(false);
     setErrors({});
     setShowEdit(true);
+    setOldPassword("");
+    setIsPasswordVerified(false);
+    setOldPasswordError("");
+    setShowOldPassword(false);
   };
 
   const handleConfirmCurrentPassword = async () => {
@@ -181,6 +192,29 @@ export default function UserDashboard({
     }
   };
 
+  const handleVerifyOldPassword = async () => {
+    if (!oldPassword.trim()) {
+      setOldPasswordError("Vui lòng nhập mật khẩu cũ.");
+      return;
+    }
+
+    setVerifyingOldPassword(true);
+    setOldPasswordError("");
+
+    try {
+      await authService.confirmPassword(oldPassword);
+      setIsPasswordVerified(true);
+      setOldPasswordError("");
+    } catch (error) {
+      setOldPasswordError(
+        error instanceof Error ? error.message : "Mật khẩu cũ không chính xác."
+      );
+      setIsPasswordVerified(false);
+    } finally {
+      setVerifyingOldPassword(false);
+    }
+  };
+
   const closeEdit = () => {
     setShowEdit(false);
     setForm(profile);
@@ -189,6 +223,10 @@ export default function UserDashboard({
     setShowNewPassword(false);
     setShowConfirmNewPassword(false);
     setErrors({});
+    setOldPassword("");
+    setIsPasswordVerified(false);
+    setOldPasswordError("");
+    setShowOldPassword(false);
   };
 
   const validateForm = () => {
@@ -253,7 +291,8 @@ export default function UserDashboard({
         email: form.email,
         phone: form.soDienThoai,
         address: form.diaChi,
-        newPassword: newPassword || undefined
+        newPassword: newPassword || undefined,
+        oldPassword: newPassword ? oldPassword : undefined
       });
 
       const formattedProfile: Profile = {
@@ -679,6 +718,84 @@ export default function UserDashboard({
                 )}
               </div>
 
+              {/* Mật khẩu cũ */}
+              <div>
+                <label className="block text-sm text-gray-700 mb-1.5">
+                  <Lock className="w-4 h-4 inline mr-1" />
+                  Mật khẩu cũ
+                  <span className="text-gray-400 ml-1">
+                    (nhập mật khẩu cũ để đổi mật khẩu mới)
+                  </span>
+                </label>
+
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showOldPassword ? "text" : "password"}
+                      value={oldPassword}
+                      disabled={isPasswordVerified || verifyingOldPassword}
+                      onChange={(event) => {
+                        setOldPassword(event.target.value);
+                        setOldPasswordError("");
+                      }}
+                      className={`w-full h-[46px] border rounded-md px-4 pr-11 text-base focus:outline-none focus:ring-1 ${
+                        oldPasswordError
+                          ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                          : "border-gray-300 focus:border-blue-400 focus:ring-blue-100"
+                      } ${isPasswordVerified ? "bg-gray-50 text-gray-500" : ""}`}
+                      placeholder="Nhập mật khẩu cũ..."
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowOldPassword((previous) => !previous)
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showOldPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleVerifyOldPassword}
+                    disabled={isPasswordVerified || verifyingOldPassword || !oldPassword.trim()}
+                    className={`h-[46px] px-4 font-medium rounded-md text-sm border flex items-center justify-center transition-colors ${
+                      isPasswordVerified
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                        : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
+                    }`}
+                  >
+                    {verifyingOldPassword ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isPasswordVerified ? (
+                      "Đã xác nhận"
+                    ) : (
+                      "Xác nhận"
+                    )}
+                  </button>
+                </div>
+
+                {oldPasswordError && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {oldPasswordError}
+                  </p>
+                )}
+
+                {isPasswordVerified && (
+                  <p className="mt-1 text-xs text-emerald-600 flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Xác thực mật khẩu cũ thành công. Bạn có thể nhập mật khẩu mới.
+                  </p>
+                )}
+              </div>
+
               {/* Mật khẩu mới */}
               <div>
                 <label className="block text-sm text-gray-700 mb-1.5">
@@ -693,6 +810,7 @@ export default function UserDashboard({
                   <input
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
+                    disabled={!isPasswordVerified}
                     onChange={(event) => {
                       setNewPassword(event.target.value);
 
@@ -706,8 +824,8 @@ export default function UserDashboard({
                       errors.newPassword
                         ? "border-red-400 focus:border-red-400 focus:ring-red-100"
                         : "border-gray-300 focus:border-blue-400 focus:ring-blue-100"
-                    }`}
-                    placeholder="Nhập mật khẩu mới..."
+                    } ${!isPasswordVerified ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
+                    placeholder={isPasswordVerified ? "Nhập mật khẩu mới..." : "Vui lòng xác minh mật khẩu cũ trước..."}
                   />
 
                   <button
@@ -715,7 +833,8 @@ export default function UserDashboard({
                     onClick={() =>
                       setShowNewPassword((previous) => !previous)
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={!isPasswordVerified}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                   >
                     {showNewPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -746,6 +865,7 @@ export default function UserDashboard({
                       showConfirmNewPassword ? "text" : "password"
                     }
                     value={confirmNewPassword}
+                    disabled={!isPasswordVerified}
                     onChange={(event) => {
                       setConfirmNewPassword(event.target.value);
 
@@ -763,8 +883,8 @@ export default function UserDashboard({
                       errors.confirmPassword
                         ? "border-red-400 focus:border-red-400 focus:ring-red-100"
                         : "border-gray-300 focus:border-blue-400 focus:ring-blue-100"
-                    }`}
-                    placeholder="Nhập lại mật khẩu mới..."
+                    } ${!isPasswordVerified ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
+                    placeholder={isPasswordVerified ? "Nhập lại mật khẩu mới..." : "Vui lòng xác minh mật khẩu cũ trước..."}
                   />
 
                   <button
@@ -774,7 +894,8 @@ export default function UserDashboard({
                         (previous) => !previous
                       )
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={!isPasswordVerified}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                   >
                     {showConfirmNewPassword ? (
                       <EyeOff className="w-5 h-5" />

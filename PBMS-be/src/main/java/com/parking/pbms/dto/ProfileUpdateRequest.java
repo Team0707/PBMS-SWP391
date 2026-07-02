@@ -18,6 +18,8 @@ public record ProfileUpdateRequest(
 
         String address, // USER only
 
-        String newPassword // Optional (change if not empty)
+        String newPassword, // Optional (change if not empty)
+
+        String oldPassword // Optional (required if newPassword is provided)
 ) {
 }

@@ -16,12 +16,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(
             BadCredentialsException exception
     ) {
+        String msg = exception.getMessage();
+        if (msg == null || msg.equals("Bad credentials")) {
+            msg = "Tên đăng nhập hoặc mật khẩu không đúng";
+        }
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(
                         new ApiResponse<>(
                                 401,
-                                "Tên đăng nhập hoặc mật khẩu không đúng",
+                                msg,
                                 null
                         )
                 );
