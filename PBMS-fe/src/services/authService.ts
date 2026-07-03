@@ -120,6 +120,7 @@ export const authService = {
     phone: string;
     address?: string;
     newPassword?: string;
+    oldPassword?: string;
   }): Promise<UserProfile> {
     const token = this.getToken();
     const response = await fetch(`${API_URL}/profile`, {
