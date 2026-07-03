@@ -7,61 +7,17 @@ import {
   Coins,
   Info,
   ParkingSquare,
-  CalendarDays,
   Tag,
+  CalendarDays,
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import violationRuleService from "../../../services/violationRuleService";
+import { adminCardService, CardGroupDto } from "../../../services/adminCardService";
 import { ViolationRule } from "../admin/CardViolationRules";
-
-/* ─── Bảng giá vé tĩnh ─────────────────────────────────── */
-const TICKET_PRICES = [
-  {
-    category: "Thẻ lượt",
-    icon: Tag,
-    color: "amber",
-    items: [
-      { label: "Xe máy (lượt vào / ra)", price: "5.000đ" },
-      { label: "Ô tô (lượt vào / ra)", price: "20.000đ" },
-    ],
-  },
-  {
-    category: "Thẻ ngày",
-    icon: CalendarDays,
-    color: "blue",
-    items: [
-      { label: "Xe máy / ngày", price: "30.000đ" },
-      { label: "Ô tô / ngày", price: "120.000đ" },
-    ],
-  },
-  {
-    category: "Thẻ tháng",
-    icon: CreditCardIcon,
-    color: "purple",
-    items: [
-      { label: "Xe máy / tháng", price: "300.000đ" },
-      { label: "Ô tô / tháng", price: "1.200.000đ" },
-    ],
-  },
-];
-
-function CreditCardIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-      <line x1="1" y1="10" x2="23" y2="10" />
-    </svg>
-  );
-}
-
-const colorMap: Record<string, { bg: string; border: string; badge: string; text: string; icon: string }> = {
-  amber:  { bg: "bg-amber-50",  border: "border-amber-200",  badge: "bg-amber-100 text-amber-800 border-amber-200",  text: "text-amber-700",  icon: "text-amber-500"  },
-  blue:   { bg: "bg-blue-50",   border: "border-blue-200",   badge: "bg-blue-100 text-blue-800 border-blue-200",     text: "text-blue-700",   icon: "text-blue-500"   },
-  purple: { bg: "bg-purple-50", border: "border-purple-200", badge: "bg-purple-100 text-purple-800 border-purple-200", text: "text-purple-700", icon: "text-purple-500" },
-};
 
 /* ─── FAQ items ─────────────────────────────────────────── */
 const FAQ = [
@@ -83,21 +39,60 @@ const FAQ = [
   },
 ];
 
+/* ─── Helpers ───────────────────────────────────────────── */
+type TicketGroup = "SINGLE" | "DAY" | "MONTHLY";
+
+const TICKET_GROUP_LABEL: Record<TicketGroup, string> = {
+  SINGLE: "Thẻ lượt",
+  DAY: "Thẻ ngày",
+  MONTHLY: "Thẻ tháng",
+};
+
+const TICKET_GROUP_COLOR: Record<TicketGroup, { bg: string; border: string; icon: string; text: string; badge: string }> = {
+  SINGLE:  { bg: "bg-amber-50",  border: "border-amber-200",  icon: "text-amber-500",  text: "text-amber-700",  badge: "bg-amber-100 text-amber-800"  },
+  DAY:     { bg: "bg-blue-50",   border: "border-blue-200",   icon: "text-blue-500",   text: "text-blue-700",   badge: "bg-blue-100 text-blue-800"     },
+  MONTHLY: { bg: "bg-purple-50", border: "border-purple-200", icon: "text-purple-500", text: "text-purple-700", badge: "bg-purple-100 text-purple-800"  },
+};
+
+const TICKET_ICONS: Record<TicketGroup, React.FC<{ className?: string }>> = {
+  SINGLE:  Tag,
+  DAY:     CalendarDays,
+  MONTHLY: CreditCardSvg,
+};
+
+function CreditCardSvg({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
+  );
+}
+
 /* ─── Component chính ───────────────────────────────────── */
 export default function UserRegulations() {
+  const [groups, setGroups] = useState<CardGroupDto[]>([]);
   const [rules, setRules] = useState<ViolationRule[]>([]);
-  const [loadingRules, setLoadingRules] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
-    violationRuleService
-      .getAllRules()
-      .then((data) => setRules(data.filter((r) => r.isActive)))
-      .catch(() => setRules([]))
-      .finally(() => setLoadingRules(false));
+    Promise.all([
+      adminCardService.getAllCardGroups().catch(() => [] as CardGroupDto[]),
+      violationRuleService.getAllRules().catch(() => [] as ViolationRule[]),
+    ]).then(([g, r]) => {
+      setGroups(g.filter((x) => x.status === "ACTIVE"));
+      setRules(r.filter((x) => x.isActive));
+    }).finally(() => setLoading(false));
   }, []);
 
-  const singleRules = rules.filter((r) => r.ticketType === "SINGLE");
+  /* Nhóm card-groups theo ticketType */
+  const groupedPrices = (["SINGLE", "DAY", "MONTHLY"] as TicketGroup[]).map((type) => ({
+    type,
+    items: groups.filter((g) => g.ticketType === type),
+  })).filter((g) => g.items.length > 0);
+
+  const singleRules  = rules.filter((r) => r.ticketType === "SINGLE");
   const expiredRules = rules.filter((r) => r.ticketType !== "SINGLE");
 
   return (
@@ -105,8 +100,13 @@ export default function UserRegulations() {
 
       {/* ── Hero giới thiệu ── */}
       <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#1a3560] via-[#1e4080] to-[#0e6ba8] p-8 text-white shadow-xl">
-        <div className="absolute inset-0 opacity-10"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 50%, #60a5fa 0%, transparent 60%), radial-gradient(circle at 80% 20%, #34d399 0%, transparent 50%)" }} />
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 50%, #60a5fa 0%, transparent 60%), radial-gradient(circle at 80% 20%, #34d399 0%, transparent 50%)",
+          }}
+        />
         <div className="relative flex items-start gap-5">
           <div className="p-3 bg-white/15 rounded-xl flex-shrink-0 backdrop-blur-sm">
             <ParkingSquare className="w-10 h-10 text-sky-300" />
@@ -121,9 +121,9 @@ export default function UserRegulations() {
               Hệ thống Quản lý Bãi xe <span className="text-sky-300">PBMS</span>
             </h1>
             <p className="text-blue-100 text-sm leading-relaxed max-w-2xl">
-              PBMS là hệ thống quản lý bãi đỗ xe thông minh, hỗ trợ các loại thẻ lượt, thẻ ngày và thẻ tháng cho
-              xe máy và ô tô. Hệ thống tự động ghi nhận thời gian check-in / check-out, tính phí và xử lý vi phạm
-              minh bạch, nhanh chóng.
+              PBMS là hệ thống quản lý bãi đỗ xe thông minh, hỗ trợ các loại thẻ lượt, thẻ ngày và thẻ tháng cho xe
+              máy và ô tô. Hệ thống tự động ghi nhận thời gian check-in / check-out, tính phí và xử lý vi phạm minh
+              bạch, nhanh chóng.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
               {[
@@ -131,7 +131,10 @@ export default function UserRegulations() {
                 { icon: Clock,        label: "Tự động tính giờ" },
                 { icon: ShieldAlert,  label: "Xử lý vi phạm minh bạch" },
               ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-1.5 text-xs bg-white/10 rounded-full px-3 py-1 border border-white/20">
+                <div
+                  key={label}
+                  className="flex items-center gap-1.5 text-xs bg-white/10 rounded-full px-3 py-1 border border-white/20"
+                >
                   <Icon className="w-3.5 h-3.5 text-sky-300" />
                   <span>{label}</span>
                 </div>
@@ -141,75 +144,97 @@ export default function UserRegulations() {
         </div>
       </section>
 
-      {/* ── Bảng giá vé ── */}
+      {/* ── Bảng giá vé (từ API) ── */}
       <section>
-        <SectionTitle icon={Coins} title="Bảng giá vé" subtitle="Mức phí áp dụng cho từng loại thẻ và phương tiện" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          {TICKET_PRICES.map(({ category, icon: Icon, color, items }) => {
-            const c = colorMap[color];
-            return (
-              <div key={category} className={`rounded-xl border ${c.border} ${c.bg} p-4 shadow-sm`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className={`p-1.5 rounded-lg bg-white shadow-sm`}>
-                    <Icon className={`w-4 h-4 ${c.icon}`} />
-                  </div>
-                  <span className={`text-xs font-bold uppercase tracking-wide ${c.text}`}>{category}</span>
-                </div>
-                <div className="space-y-2">
-                  {items.map(({ label, price }) => (
-                    <div key={label} className="flex justify-between items-center">
-                      <span className="text-xs text-gray-600">{label}</span>
-                      <span className="text-sm font-bold text-gray-800">{price}</span>
+        <SectionTitle
+          icon={Coins}
+          title="Bảng giá vé"
+          subtitle="Mức phí áp dụng cho từng loại thẻ và phương tiện (cập nhật theo cấu hình hệ thống)"
+        />
+
+        {loading ? (
+          <LoadingSpinner label="Đang tải bảng giá..." />
+        ) : groupedPrices.length === 0 ? (
+          <p className="text-sm text-gray-400 mt-4 text-center py-6 border border-dashed border-gray-200 rounded-xl">
+            Chưa có dữ liệu bảng giá.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            {groupedPrices.map(({ type, items }) => {
+              const c = TICKET_GROUP_COLOR[type];
+              const Icon = TICKET_ICONS[type];
+              return (
+                <div key={type} className={`rounded-xl border ${c.border} ${c.bg} p-4 shadow-sm`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg bg-white shadow-sm">
+                      <Icon className={`w-4 h-4 ${c.icon}`} />
                     </div>
-                  ))}
+                    <span className={`text-xs font-bold uppercase tracking-wide ${c.text}`}>
+                      {TICKET_GROUP_LABEL[type]}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((g) => (
+                      <div key={g.cardGroupId} className="flex justify-between items-center gap-2">
+                        <span className="text-xs text-gray-600 flex items-center gap-1">
+                          {g.vehicleType === "MOTORCYCLE"
+                            ? <Bike className="w-3 h-3 text-gray-400" />
+                            : <Car className="w-3 h-3 text-gray-400" />}
+                          {g.groupName}
+                        </span>
+                        <span className="text-sm font-bold text-gray-800 whitespace-nowrap">
+                          {g.basePrice.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
+
         <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-          <Info className="w-3 h-3" /> Giá vé có thể thay đổi theo thông báo của ban quản lý.
+          <Info className="w-3 h-3" /> Giá vé phản ánh cấu hình hiện tại của hệ thống, có thể thay đổi theo thông báo của ban quản lý.
         </p>
       </section>
 
-      {/* ── Quy định phạt (lấy từ API) ── */}
+      {/* ── Quy định phạt (từ API) ── */}
       <section>
-        <SectionTitle icon={ShieldAlert} title="Quy định phạt" subtitle="Các mức phạt vi phạm đang được áp dụng" />
+        <SectionTitle
+          icon={ShieldAlert}
+          title="Quy định phạt"
+          subtitle="Các mức phạt vi phạm đang được áp dụng (cập nhật theo cấu hình hệ thống)"
+        />
 
-        {loadingRules ? (
-          <div className="flex items-center justify-center h-24 text-gray-400 text-sm gap-2">
-            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            Đang tải quy định...
-          </div>
+        {loading ? (
+          <LoadingSpinner label="Đang tải quy định phạt..." />
         ) : (
           <div className="space-y-5 mt-4">
-
-            {/* Thẻ lượt quá giờ */}
             {singleRules.length > 0 && (
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600 mb-2 flex items-center gap-1">
                   <Tag className="w-3 h-3" /> Thẻ lượt – Quá giờ đỗ
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {singleRules.map((r) => (
-                    <RuleCard key={r.id} rule={r} />
-                  ))}
+                  {singleRules.map((r) => <RuleCard key={r.id} rule={r} />)}
                 </div>
               </div>
             )}
-
-            {/* Thẻ ngày / tháng hết hạn */}
             {expiredRules.length > 0 && (
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-red-500 mb-2 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" /> Thẻ ngày / tháng – Hết hạn khi checkout
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {expiredRules.map((r) => (
-                    <RuleCard key={r.id} rule={r} />
-                  ))}
+                  {expiredRules.map((r) => <RuleCard key={r.id} rule={r} />)}
                 </div>
               </div>
+            )}
+            {singleRules.length === 0 && expiredRules.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                Chưa có quy định phạt nào đang áp dụng.
+              </p>
             )}
           </div>
         )}
@@ -244,8 +269,7 @@ export default function UserRegulations() {
                 <span className="text-sm font-semibold text-gray-800">{item.q}</span>
                 {openFaq === idx
                   ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                }
+                  : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
               </button>
               {openFaq === idx && (
                 <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-2">
@@ -260,7 +284,7 @@ export default function UserRegulations() {
   );
 }
 
-/* ── Sub-components ───────────────────────────────────────── */
+/* ── Sub-components ─────────────────────────────────────── */
 
 function SectionTitle({
   icon: Icon,
@@ -284,9 +308,18 @@ function SectionTitle({
   );
 }
 
+function LoadingSpinner({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center h-20 text-gray-400 text-sm gap-2 mt-4">
+      <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
+      {label}
+    </div>
+  );
+}
+
 function RuleCard({ rule }: { rule: ViolationRule }) {
-  const isMoto = rule.vehicleType === "MOTORCYCLE";
-  const isSingle = rule.ticketType === "SINGLE";
+  const isMoto   = rule.vehicleType === "MOTORCYCLE";
+  const isSingle = rule.ticketType  === "SINGLE";
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-red-200 hover:shadow-md transition-all">
@@ -294,8 +327,7 @@ function RuleCard({ rule }: { rule: ViolationRule }) {
         <div className={`p-2 rounded-lg flex-shrink-0 ${isMoto ? "bg-blue-50" : "bg-indigo-50"}`}>
           {isMoto
             ? <Bike className="w-4 h-4 text-blue-600" />
-            : <Car className="w-4 h-4 text-indigo-600" />
-          }
+            : <Car  className="w-4 h-4 text-indigo-600" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-gray-800 leading-tight">{rule.ruleName}</p>
