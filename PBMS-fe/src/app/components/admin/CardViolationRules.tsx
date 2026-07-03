@@ -50,6 +50,17 @@ export default function CardViolationRules() {
     fetchRules();
   }, []);
 
+  /** Sinh lại mô tả tự động cho thẻ lượt dựa trên số giờ và mức phạt */
+  const generateSingleDescription = (
+    vehicleType: string,
+    maxHours: number,
+    penalty: number
+  ): string => {
+    const vehicle = vehicleType === "MOTORCYCLE" ? "xe máy" : "ô tô";
+    const penaltyStr = penalty.toLocaleString("vi-VN") + "đ";
+    return `Áp dụng cho thẻ lượt ${vehicle} đỗ quá ${maxHours} giờ kể từ thời điểm check-in. Phạt ${penaltyStr} cho mỗi giờ quá hạn tiếp theo.`;
+  };
+
   const handleEditClick = (rule: ViolationRule) => {
     setEditingRule({ ...rule });
   };
@@ -240,11 +251,16 @@ export default function CardViolationRules() {
                       type="number"
                       min="0"
                       value={editingRule.maxDurationHours}
-                      onChange={(e) =>
-                        setEditingRule(prev =>
-                          prev ? { ...prev, maxDurationHours: parseInt(e.target.value) || 0 } : null
-                        )
-                      }
+                      onChange={(e) => {
+                        const newHours = parseInt(e.target.value) || 0;
+                        setEditingRule(prev => {
+                          if (!prev) return null;
+                          const newDesc = prev.ticketType === "SINGLE"
+                            ? generateSingleDescription(prev.vehicleType, newHours, prev.penaltyPerHour)
+                            : prev.description;
+                          return { ...prev, maxDurationHours: newHours, description: newDesc };
+                        });
+                      }}
                       className={`${cls.input} w-full pr-10`}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">giờ</span>
@@ -264,11 +280,16 @@ export default function CardViolationRules() {
                     min="0"
                     step="1000"
                     value={editingRule.penaltyPerHour}
-                    onChange={(e) =>
-                      setEditingRule(prev =>
-                        prev ? { ...prev, penaltyPerHour: parseInt(e.target.value) || 0 } : null
-                      )
-                    }
+                    onChange={(e) => {
+                      const newPenalty = parseInt(e.target.value) || 0;
+                      setEditingRule(prev => {
+                        if (!prev) return null;
+                        const newDesc = prev.ticketType === "SINGLE"
+                          ? generateSingleDescription(prev.vehicleType, prev.maxDurationHours, newPenalty)
+                          : prev.description;
+                        return { ...prev, penaltyPerHour: newPenalty, description: newDesc };
+                      });
+                    }}
                     className={`${cls.input} w-full pr-14`}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">VND/h</span>
