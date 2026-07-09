@@ -26,5 +26,7 @@ public record CreateUserRequest(
     String password,
 
     @NotBlank(message = "Trạng thái không được để trống")
-    String status
+    String status,
+
+    String address
 ) {}

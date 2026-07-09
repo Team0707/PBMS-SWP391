@@ -10,5 +10,7 @@ public record UserResponse(
     String phone,
     String email,
     String status,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    String address,
+    Integer cardCount
 ) {}

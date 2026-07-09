@@ -20,5 +20,7 @@ public record UpdateUserRequest(
     @NotBlank(message = "Trạng thái không được để trống")
     String status,
 
-    String password
+    String password,
+
+    String address
 ) {}

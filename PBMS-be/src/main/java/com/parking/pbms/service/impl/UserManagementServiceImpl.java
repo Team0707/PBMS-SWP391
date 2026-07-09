@@ -25,6 +25,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final AdminRepository adminRepository;
     private final StaffRepository staffRepository;
     private final UserRepository userRepository;
+    private final CardRepository cardRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -51,13 +52,14 @@ public class UserManagementServiceImpl implements UserManagementService {
                 .passwordHash(passwordEncoder.encode(request.password().trim()))
                 .email(request.email() != null ? request.email().trim() : null)
                 .phone(request.phone() != null ? request.phone().trim() : null)
+                .address(request.address() != null ? request.address().trim() : null)
                 .status(request.status().trim().toUpperCase())
                 .build();
 
         Account saved = accountRepository.saveAndFlush(account);
 
         // Sync to corresponding profile table
-        syncProfile(saved, "", role.getRoleName(), saved.getFullName(), saved.getEmail(), saved.getPhone(), saved.getStatus());
+        syncProfile(saved, "", role.getRoleName(), saved.getFullName(), saved.getEmail(), saved.getPhone(), saved.getAddress(), saved.getStatus());
 
         return mapToResponse(saved);
     }
@@ -78,6 +80,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         account.setFullName(request.fullName().trim());
         account.setEmail(request.email() != null ? request.email().trim() : null);
         account.setPhone(request.phone() != null ? request.phone().trim() : null);
+        account.setAddress(request.address() != null ? request.address().trim() : null);
         account.setStatus(request.status().trim().toUpperCase());
 
         if (request.password() != null && !request.password().trim().isEmpty()) {
@@ -87,7 +90,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         Account saved = accountRepository.saveAndFlush(account);
 
         // Sync profile changes and clean up old profiles if role changed
-        syncProfile(saved, oldRole, newRole, saved.getFullName(), saved.getEmail(), saved.getPhone(), saved.getStatus());
+        syncProfile(saved, oldRole, newRole, saved.getFullName(), saved.getEmail(), saved.getPhone(), saved.getAddress(), saved.getStatus());
 
         return mapToResponse(saved);
     }
@@ -125,7 +128,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         return mapToResponse(saved);
     }
 
-    private void syncProfile(Account account, String oldRole, String newRole, String fullName, String email, String phone, String status) {
+    private void syncProfile(Account account, String oldRole, String newRole, String fullName, String email, String phone, String address, String status) {
         // Clean up old role profiles
         if (oldRole != null && !oldRole.isEmpty() && !newRole.equalsIgnoreCase(oldRole)) {
             if (oldRole.equalsIgnoreCase("ADMIN")) {
@@ -156,16 +159,33 @@ public class UserManagementServiceImpl implements UserManagementService {
             staffRepository.save(staff);
         } else if (newRole.equalsIgnoreCase("USER")) {
             User user = userRepository.findByAccountId(account.getAccountId())
-                    .orElseGet(() -> User.builder().accountId(account.getAccountId()).address("").build());
+                    .orElseGet(() -> User.builder().accountId(account.getAccountId()).build());
             user.setFullName(fullName);
             user.setEmail(email != null ? email : "");
             user.setPhone(phone != null ? phone : "");
+            user.setAddress(address != null ? address : "");
             user.setStatus(status);
             userRepository.save(user);
         }
     }
 
     private UserResponse mapToResponse(Account account) {
+        String resolvedAddress = "";
+        if ("USER".equalsIgnoreCase(account.getRoleName())) {
+            Optional<User> userOpt = userRepository.findByAccountId(account.getAccountId());
+            if (userOpt.isPresent()) {
+                resolvedAddress = userOpt.get().getAddress();
+            }
+        }
+        if (resolvedAddress == null || resolvedAddress.isEmpty()) {
+            resolvedAddress = account.getAddress() != null ? account.getAddress() : "";
+        }
+
+        int cardCount = 0;
+        if ("USER".equalsIgnoreCase(account.getRoleName())) {
+            cardCount = cardRepository.findMonthlyAndDayCardsByAccountId(account.getAccountId()).size();
+        }
+
         return new UserResponse(
                 account.getAccountId(),
                 account.getUsername(),
@@ -174,7 +194,9 @@ public class UserManagementServiceImpl implements UserManagementService {
                 account.getPhone() != null ? account.getPhone() : "",
                 account.getEmail() != null ? account.getEmail() : "",
                 account.getStatus(),
-                account.getCreatedAt()
+                account.getCreatedAt(),
+                resolvedAddress,
+                cardCount
         );
     }
 }

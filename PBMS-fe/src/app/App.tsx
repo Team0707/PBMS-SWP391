@@ -59,19 +59,6 @@ export default function App() {
     return () => window.removeEventListener("session:expired", handleSessionExpired);
   }, []);
 
-  // Đồng bộ trạng thái đăng nhập/đăng xuất/đổi tài khoản giữa các tab
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "authToken" || e.key === "userRole") {
-        const currentUser = authService.getCurrentUser();
-        setAuth(currentUser);
-        setScreen("dashboard"); // Reset về màn hình chính khi đổi session
-        setSessionExpiredMsg(null);
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

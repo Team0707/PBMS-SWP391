@@ -133,44 +133,10 @@ export const adminCardService = {
     return result.data;
   },
 
-  async getCustomers(): Promise<CustomerDto[]> {
-    const response = await authFetch(`${API_URL}/admin/customers`);
-    const result: ApiResponse<CustomerDto[]> = await safeJson(response);
-    if (!response.ok) throw new Error(result.message || "Không thể tải danh sách khách hàng.");
-    return result.data;
-  },
-
-  async getCustomerCards(customerId: number): Promise<CustomerCardDto[]> {
-    const response = await authFetch(`${API_URL}/admin/customers/${customerId}/cards`);
-    const result: ApiResponse<CustomerCardDto[]> = await safeJson(response);
-    if (!response.ok) throw new Error(result.message || "Không thể tải danh sách thẻ của khách hàng.");
-    return result.data;
-  },
-
-  async createCustomer(payload: CreateCustomerPayload): Promise<CustomerDto> {
-    const response = await authFetch(`${API_URL}/admin/customers`, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    const result: ApiResponse<CustomerDto> = await safeJson(response);
-    if (!response.ok) throw new Error(result.message || "Tạo khách hàng thất bại.");
-    return result.data;
-  },
-
-  async updateCustomer(customerId: number, payload: UpdateCustomerPayload): Promise<CustomerDto> {
-    const response = await authFetch(`${API_URL}/admin/customers/${customerId}`, {
-      method: "PUT",
-      body: JSON.stringify(payload)
-    });
-    const result: ApiResponse<CustomerDto> = await safeJson(response);
-    if (!response.ok) throw new Error(result.message || "Cập nhật khách hàng thất bại.");
-    return result.data;
-  },
-
-  async deleteCustomer(customerId: number): Promise<CustomerDto> {
-    const response = await authFetch(`${API_URL}/admin/customers/${customerId}`, { method: "DELETE" });
-    const result: ApiResponse<CustomerDto> = await safeJson(response);
-    if (!response.ok) throw new Error(result.message || "Khóa khách hàng thất bại.");
+  async getUserCards(userId: number): Promise<UserCardDto[]> {
+    const response = await authFetch(`${API_URL}/admin/users/${userId}/cards`);
+    const result: ApiResponse<UserCardDto[]> = await safeJson(response);
+    if (!response.ok) throw new Error(result.message || "Không thể tải danh sách thẻ của người dùng.");
     return result.data;
   },
 
@@ -250,6 +216,8 @@ export interface UserDto {
   email: string;
   status: string;
   createdAt: string;
+  address?: string;
+  cardCount?: number;
 }
 
 export interface CreateUserPayload {
@@ -260,6 +228,7 @@ export interface CreateUserPayload {
   email?: string;
   password?: string;
   status: string;
+  address?: string;
 }
 
 export interface UpdateUserPayload {
@@ -269,23 +238,10 @@ export interface UpdateUserPayload {
   email?: string;
   password?: string;
   status: string;
+  address?: string;
 }
 
-export interface CustomerDto {
-  customerId: number;
-  customerCode: string;
-  accountId: number;
-  fullName: string;
-  phone: string;
-  email: string;
-  address: string;
-  note: string;
-  status: string;
-  createdAt: string;
-  monthlyCardCount: number;
-}
-
-export interface CustomerCardDto {
+export interface UserCardDto {
   cardId: number;
   cardNo: string;
   rfidUid: string;
@@ -296,23 +252,6 @@ export interface CustomerCardDto {
   expireAt: string;
   status: string;
   note: string;
-}
-
-export interface CreateCustomerPayload {
-  fullName: string;
-  phone: string;
-  email?: string;
-  address?: string;
-  note?: string;
-}
-
-export interface UpdateCustomerPayload {
-  fullName: string;
-  phone: string;
-  email?: string;
-  address?: string;
-  note?: string;
-  status: string;
 }
 
 export interface VehicleReportParams {

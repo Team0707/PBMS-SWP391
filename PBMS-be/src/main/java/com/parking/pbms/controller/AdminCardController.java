@@ -81,13 +81,13 @@ public class AdminCardController {
         );
     }
 
-    @GetMapping("/customers/{accountId}/cards")
-    public ResponseEntity<ApiResponse<List<com.parking.pbms.dto.MonthlyCardResponse>>> getCustomerCards(
+    @GetMapping("/users/{accountId}/cards")
+    public ResponseEntity<ApiResponse<List<com.parking.pbms.dto.MonthlyCardResponse>>> getUserCards(
             @PathVariable("accountId") Integer accountId
     ) {
         List<com.parking.pbms.dto.MonthlyCardResponse> cards = userCardService.getCardsByAccountId(accountId);
         return ResponseEntity.ok(
-                ApiResponse.success(200, "Lấy danh sách thẻ của khách hàng thành công", cards)
+                ApiResponse.success(200, "Lấy danh sách thẻ của người dùng thành công", cards)
         );
     }
 }

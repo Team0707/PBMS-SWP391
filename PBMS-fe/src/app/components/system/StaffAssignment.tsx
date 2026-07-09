@@ -443,12 +443,11 @@ export default function StaffAssignment() {
       )}
 
       {/* ── Summary Stats cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: "Tổng số tầng", value: totalFloorsCount, icon: MapPin, color: "text-blue-600 bg-blue-50" },
           { label: "Đã phân công", value: assignedCount, icon: CheckCircle, color: "text-green-600 bg-green-50" },
           { label: "Chưa phân công", value: Math.max(0, unassignedCount), icon: AlertCircle, color: "text-amber-600 bg-amber-50" },
-          { label: "Nhân viên đang trực", value: onDutyCount, icon: Users, color: "text-purple-600 bg-purple-50" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 flex items-center gap-3">
             <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>

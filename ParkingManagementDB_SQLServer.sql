@@ -1,3 +1,8 @@
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+GO
+
 USE master;
 GO
 
@@ -427,7 +432,7 @@ BEGIN
     CREATE TABLE dbo.Payments (
         PaymentID         BIGINT IDENTITY(1,1) PRIMARY KEY,
         PaymentNo         AS ('PMT' + RIGHT('000000' + CONVERT(VARCHAR(20), PaymentID), 6)) PERSISTED,
-        PayerAccountID    INT NOT NULL,
+        PayerAccountID    INT NULL,
         TicketID          BIGINT NULL,
         CardID            INT NULL,
         Amount            DECIMAL(18,2) NOT NULL,
@@ -738,13 +743,17 @@ IF NOT EXISTS (SELECT 1 FROM dbo.ViolationRules WHERE RuleID = 'RULE_MONTHLY_EXP
     VALUES ('RULE_MONTHLY_EXPIRED_CAR', N'Thẻ tháng hết hạn khi checkout (Ô tô)', 'MONTHLY', 'CAR', 0, 50000, N'Áp dụng khi thẻ tháng ô tô đã hết hạn tại thời điểm check-out. Tính phạt 50.000đ cho mỗi giờ quá hạn kể từ mốc hết hiệu lực.');
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.BarcodeCards WHERE Barcode = 'CARD000001')
+IF NOT EXISTS (SELECT 1 FROM dbo.BarcodeCards WHERE Barcode = 'KZP0000001')
 BEGIN
-    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('CARD000001', 1);
-    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('CARD000002', 1);
-    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('CARD000003', 1);
-    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('CARD000004', 1);
-    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('CARD000005', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000001', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000002', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000003', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000004', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000005', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000006', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000007', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000008', 1);
+    INSERT INTO dbo.BarcodeCards (Barcode, IsActive) VALUES ('KZP0000009', 1);
 END;
 GO
 

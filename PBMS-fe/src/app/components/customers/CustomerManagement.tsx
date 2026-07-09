@@ -18,7 +18,7 @@ import { Pagination } from "../common/Pagination";
 import {
   adminCardService,
   UserDto,
-  CustomerCardDto,
+  UserCardDto,
   CreateUserPayload,
   UpdateUserPayload,
 } from "../../../services/adminCardService";
@@ -79,8 +79,8 @@ const mapDtoToCustomer = (dto: UserDto, index: number): Customer => {
     hoTen: dto.fullName,
     sdt: dto.phone || "",
     email: dto.email || "",
-    diaChi: "",
-    soThe: 0,
+    diaChi: dto.address || "",
+    soThe: dto.cardCount || 0,
     trangThai: dto.status === "ACTIVE" ? "Hoạt động" : "Khóa",
     roleName: dto.roleName,
   };
@@ -102,7 +102,7 @@ function CustomerCardsModal({
       setLoading(true);
       setError("");
       try {
-        const data = await adminCardService.getCustomerCards(customer.id);
+        const data = await adminCardService.getUserCards(customer.id);
         setCards(
           data.map((item) => ({
             id: item.cardId,
@@ -141,7 +141,7 @@ function CustomerCardsModal({
           <div className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-white" />
             <span className="text-sm font-semibold text-white">
-              Thẻ của người dùng: {customer.hoTen}
+              Thẻ của khách hàng: {customer.hoTen}
             </span>
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">
               {cards.length} thẻ
@@ -193,7 +193,7 @@ function CustomerCardsModal({
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <CreditCard className="mb-2 h-10 w-10 opacity-30" />
               <p className="text-sm">
-                Người dùng chưa có thẻ liên kết / không thể truy xuất
+                Khách hàng chưa có thẻ liên kết / không thể truy xuất
               </p>
             </div>
           ) : (
@@ -303,9 +303,10 @@ export default function CustomerManagement() {
     setError("");
     try {
       const list = await adminCardService.getUsers();
-      setData(list.map((item, index) => mapDtoToCustomer(item, index)));
+      const customersOnly = list.filter(item => item.roleName === "USER");
+      setData(customersOnly.map((item, index) => mapDtoToCustomer(item, index)));
     } catch (err: any) {
-      setError(err.message || "Không thể tải danh sách người dùng.");
+      setError(err.message || "Không thể tải danh sách khách hàng.");
     } finally {
       setLoading(false);
     }
@@ -381,6 +382,7 @@ export default function CustomerManagement() {
           email: form.email.trim() || undefined,
           password: form.password && form.password.length >= 6 ? form.password : undefined,
           status: editItem.trangThai === "Hoạt động" ? "ACTIVE" : "INACTIVE",
+          address: form.diaChi.trim() || undefined,
         };
         await adminCardService.updateUser(editItem.id, payload);
       } else {
@@ -392,6 +394,7 @@ export default function CustomerManagement() {
           email: form.email.trim() || undefined,
           password: form.password || undefined,
           status: "ACTIVE",
+          address: form.diaChi.trim() || undefined,
         };
         await adminCardService.createUser(payload);
       }
@@ -399,7 +402,7 @@ export default function CustomerManagement() {
       setShowModal(false);
       setForm(defaultForm);
     } catch (err: any) {
-      setFormError(err.message || "Lưu người dùng thất bại.");
+      setFormError(err.message || "Lưu khách hàng thất bại.");
     }
   };
 
@@ -420,11 +423,6 @@ export default function CustomerManagement() {
       width: "40px",
     },
     {
-      key: "maKH",
-      label: "Mã KH",
-      width: "80px",
-    },
-    {
       key: "hoTen",
       label: "Họ tên",
       render: (value: string) => (
@@ -442,14 +440,6 @@ export default function CustomerManagement() {
     {
       key: "diaChi",
       label: "Địa chỉ",
-    },
-    {
-      key: "roleName",
-      label: "Vai trò",
-      width: "120px",
-      render: (value: string) => (
-        <span className="text-sm text-gray-700">{value}</span>
-      ),
     },
     {
       key: "soThe",
@@ -523,10 +513,10 @@ export default function CustomerManagement() {
     <div className="space-y-2">
       <div className={cls.filterSection}>
         <div className="mb-2 flex flex-wrap items-end gap-2">
-          <FilterGroup label="Từ khóa (Mã KH, Tên KH, SĐT)">
+          <FilterGroup label="Từ khóa (Tên KH, SĐT)">
             <input
               className={`${cls.input} w-[230px]`}
-              placeholder="Nhập mã KH, tên, SĐT..."
+              placeholder="Nhập tên, SĐT..."
               value={keyword}
               onChange={(event) => {
                 setKeyword(event.target.value);
@@ -596,7 +586,7 @@ export default function CustomerManagement() {
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium text-gray-700">
-              Danh sách người dùng
+              Danh sách khách hàng
             </span>
           </div>
 
@@ -614,7 +604,7 @@ export default function CustomerManagement() {
         <div className="p-2">
           {loading ? (
             <div className="flex items-center justify-center p-8 text-sm text-gray-500">
-              Đang tải danh sách người dùng...
+              Đang tải danh sách khách hàng...
             </div>
           ) : (
             <>
@@ -646,7 +636,7 @@ export default function CustomerManagement() {
           <div className="w-[440px] rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between rounded-t-lg bg-blue-600 px-5 py-3">
                 <span className="text-sm font-semibold text-white">
-                Thông tin người dùng
+                Thông tin khách hàng
               </span>
 
               <button
@@ -660,9 +650,7 @@ export default function CustomerManagement() {
 
             <div className="space-y-2.5 p-5">
               {[
-                { label: "Mã người dùng", value: viewItem.maKH },
                 { label: "Họ tên", value: viewItem.hoTen },
-                { label: "Vai trò", value: viewItem.roleName || "USER" },
                 { label: "Số điện thoại", value: viewItem.sdt },
                 { label: "Email", value: viewItem.email },
                 { label: "Địa chỉ", value: viewItem.diaChi },
@@ -696,7 +684,7 @@ export default function CustomerManagement() {
           <div className="w-[480px] rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between rounded-t-lg bg-blue-600 px-5 py-3">
               <span className="text-sm font-semibold text-white">
-                {editItem ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
+                {editItem ? "Chỉnh sửa khách hàng" : "Thêm khách hàng mới"}
               </span>
 
               <button
@@ -799,20 +787,7 @@ export default function CustomerManagement() {
                 </div>
               )}
 
-              <div>
-                <label className="mb-1 block text-xs text-gray-600">Vai trò</label>
-                <select
-                  className={`${cls.select} w-full`}
-                  value={form.roleName}
-                  onChange={(event) =>
-                    setForm((previous) => ({ ...previous, roleName: event.target.value }))
-                  }
-                >
-                  <option value="USER">USER</option>
-                  <option value="STAFF">STAFF</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </div>
+
 
               <div>
                 <label className="mb-1 block text-xs text-gray-600">
@@ -913,7 +888,7 @@ export default function CustomerManagement() {
                     Xác nhận vô hiệu hóa
                   </p>
                   <p className="mt-0.5 text-xs text-gray-500">
-                    Bạn có chắc muốn vô hiệu hóa người dùng này không? (Trạng thái sẽ đổi sang Khóa)
+                    Bạn có chắc muốn vô hiệu hóa khách hàng này không? (Trạng thái sẽ đổi sang Khóa)
                   </p>
                 </div>
               </div>

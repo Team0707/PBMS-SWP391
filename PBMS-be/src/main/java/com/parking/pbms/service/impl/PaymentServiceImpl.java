@@ -53,9 +53,18 @@ public class PaymentServiceImpl implements PaymentService {
 
         String description = "ThanhToanVeXe_" + ticket.getSessionId();
 
+        // Resolve payerAccountId from the card owner (null for guest/SINGLE sessions)
+        Integer payerAccountId = null;
+        if (ticket.getCardId() != null) {
+            payerAccountId = cardRepository.findById(ticket.getCardId())
+                    .map(card -> card.getAccountId())
+                    .orElse(null);
+        }
+
         // 1. Lưu trạng thái PENDING vào Database trước
         Payment payment = Payment.builder()
                 .ticketId(ticket.getSessionId())
+                .payerAccountId(payerAccountId)
                 .amount(totalAmount)
                 .paymentMethod("VIETQR")
                 .paymentType("PARKING_FEE")
@@ -106,9 +115,18 @@ public class PaymentServiceImpl implements PaymentService {
         BigDecimal penalty = ticket.getPenaltyAmount() != null ? ticket.getPenaltyAmount() : BigDecimal.ZERO;
         BigDecimal totalAmount = fee.add(penalty);
 
+        // Resolve payerAccountId from the card owner (null for guest/SINGLE sessions)
+        Integer payerAccountId = null;
+        if (ticket.getCardId() != null) {
+            payerAccountId = cardRepository.findById(ticket.getCardId())
+                    .map(card -> card.getAccountId())
+                    .orElse(null);
+        }
+
         // Tao Payment record voi trang thai PAID ngay (khong qua cong thanh toan)
         Payment payment = Payment.builder()
                 .ticketId(ticket.getSessionId())
+                .payerAccountId(payerAccountId)
                 .amount(totalAmount)
                 .paymentMethod("CASH")
                 .paymentType("PARKING_FEE")

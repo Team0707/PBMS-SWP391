@@ -36,9 +36,10 @@ export const authService = {
     }
 
     const { data } = result;
-    const storage = remember ? localStorage : sessionStorage;
+    const userRole = data.role.toLowerCase();
+    const isRemember = remember || userRole === "admin";
 
-    // Clear stale tokens from both storages
+    // Clear stale tokens from both storages (sessionStorage is legacy but good to clear)
     ["authToken", "userRole", "userName", "username", "tokenExpiry"].forEach(key => {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
@@ -47,14 +48,15 @@ export const authService = {
     // Calculate absolute expiry timestamp
     const expiryAt = Date.now() + data.expiresInMs;
 
-    storage.setItem("authToken", data.accessToken);
-    storage.setItem("userRole", data.role.toLowerCase());
-    storage.setItem("userName", data.fullName);
-    storage.setItem("username", data.username);
-    storage.setItem("tokenExpiry", String(expiryAt));
+    // Always store in localStorage to share session across all tabs
+    localStorage.setItem("authToken", data.accessToken);
+    localStorage.setItem("userRole", userRole);
+    localStorage.setItem("userName", data.fullName);
+    localStorage.setItem("username", data.username);
+    localStorage.setItem("tokenExpiry", String(expiryAt));
 
     return {
-      role: data.role.toLowerCase() as UserRole,
+      role: userRole as UserRole,
       name: data.fullName,
     };
   },
@@ -104,7 +106,8 @@ export const authService = {
   },
 
   getStoredValue(key: string): string | null {
-    return sessionStorage.getItem(key) ?? localStorage.getItem(key);
+    // Prefer localStorage which is synced across tabs
+    return localStorage.getItem(key) || sessionStorage.getItem(key);
   },
 
   async getProfile(): Promise<UserProfile> {
