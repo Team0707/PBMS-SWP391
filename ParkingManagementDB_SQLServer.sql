@@ -109,7 +109,7 @@ END;
 GO
 
 /* ================================================================
-   2. VEHICLE, FLOOR, SLOT, LANE, SHIFT
+   2. VEHICLE, FLOOR, SLOT, SHIFT
    ================================================================ */
 
 IF OBJECT_ID(N'dbo.Vehicles', N'U') IS NULL
@@ -156,22 +156,6 @@ BEGIN
 END;
 GO
 
-IF OBJECT_ID(N'dbo.Lanes', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Lanes (
-        LaneID          INT IDENTITY(1,1) PRIMARY KEY,
-        LaneCode        VARCHAR(20) NOT NULL UNIQUE,
-        LaneName        NVARCHAR(100) NOT NULL,
-        LaneType        VARCHAR(10) NOT NULL,
-        VehicleType     VARCHAR(20) NOT NULL,
-        AreaName        NVARCHAR(100) NULL,
-        Status          VARCHAR(20) NOT NULL CONSTRAINT DF_Lanes_Status DEFAULT 'ACTIVE',
-        CONSTRAINT CK_Lanes_Type CHECK (LaneType IN ('ENTRY', 'EXIT')),
-        CONSTRAINT CK_Lanes_VehicleType CHECK (VehicleType IN ('MOTORCYCLE', 'CAR', 'BOTH')),
-        CONSTRAINT CK_Lanes_Status CHECK (Status IN ('ACTIVE', 'INACTIVE'))
-    );
-END;
-GO
 
 IF OBJECT_ID(N'dbo.WorkShifts', N'U') IS NULL
 BEGIN
@@ -665,18 +649,7 @@ ELSE
     UPDATE dbo.Floors SET VehicleType = 'BOTH', TotalSlots = 100, TotalCarSlots = 50, TotalMotorcycleSlots = 50, FloorName = N'Tầng B2' WHERE FloorCode = 'B2';
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Lanes WHERE LaneCode = 'L1')
-    INSERT dbo.Lanes(LaneCode, LaneName, LaneType, VehicleType, AreaName) VALUES ('L1', N'Làn xe máy vào 1', 'ENTRY', 'MOTORCYCLE', N'Khu A - Xe máy');
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Lanes WHERE LaneCode = 'L2')
-    INSERT dbo.Lanes(LaneCode, LaneName, LaneType, VehicleType, AreaName) VALUES ('L2', N'Làn xe máy ra 1', 'EXIT', 'MOTORCYCLE', N'Khu A - Xe máy');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Lanes WHERE LaneCode = 'L3')
-    INSERT dbo.Lanes(LaneCode, LaneName, LaneType, VehicleType, AreaName) VALUES ('L3', N'Làn ô tô vào 1', 'ENTRY', 'CAR', N'Khu B - Ô tô');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Lanes WHERE LaneCode = 'L4')
-    INSERT dbo.Lanes(LaneCode, LaneName, LaneType, VehicleType, AreaName) VALUES ('L4', N'Làn ô tô ra 1', 'EXIT', 'CAR', N'Khu B - Ô tô');
-GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.WorkShifts WHERE ShiftCode = 'CA1')
     INSERT dbo.WorkShifts(ShiftCode, ShiftName, StartTime, EndTime) VALUES ('CA1', N'Ca 1', '06:00', '14:00');
