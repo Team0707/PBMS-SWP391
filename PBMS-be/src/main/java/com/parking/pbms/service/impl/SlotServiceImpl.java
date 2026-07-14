@@ -3,6 +3,7 @@ package com.parking.pbms.service.impl;
 import com.parking.pbms.dto.FloorStatDto;
 import com.parking.pbms.dto.SlotStatsResponse;
 import com.parking.pbms.model.Floor;
+import com.parking.pbms.repository.CardRepository;
 import com.parking.pbms.repository.FloorRepository;
 import com.parking.pbms.repository.ParkingSessionRepository;
 import com.parking.pbms.service.SlotService;
@@ -21,6 +22,7 @@ public class SlotServiceImpl implements SlotService {
 
     private final FloorRepository floorRepository;
     private final ParkingSessionRepository parkingSessionRepository;
+    private final CardRepository cardRepository;
 
     @Override
     public SlotStatsResponse getSlotStatistics(String dateStr) {
@@ -54,15 +56,16 @@ public class SlotServiceImpl implements SlotService {
             int floorTotalCarSlots = floor.getTotalCarSlots() != null ? floor.getTotalCarSlots() : 0;
             int floorTotalMotorcycleSlots = floor.getTotalMotorcycleSlots() != null ? floor.getTotalMotorcycleSlots() : 0;
 
-            int occupiedCar = (int) parkingSessionRepository.countActiveSessions(
+            int floorMonthlyCar = (int) cardRepository.countActiveMonthlyAndDayCards(floor.getFloorId(), "CAR");
+            int floorMonthlyMotorcycle = (int) cardRepository.countActiveMonthlyAndDayCards(floor.getFloorId(), "MOTORCYCLE");
+
+            int singleCarInside = (int) parkingSessionRepository.countActiveSingleSessions(
                     floor.getFloorId(), "CAR", startOfDay, endOfDay);
-            int occupiedMotorcycle = (int) parkingSessionRepository.countActiveSessions(
+            int singleMotorcycleInside = (int) parkingSessionRepository.countActiveSingleSessions(
                     floor.getFloorId(), "MOTORCYCLE", startOfDay, endOfDay);
 
-            int floorMonthlyCar = (int) parkingSessionRepository.countActiveMonthlySessions(
-                    floor.getFloorId(), "CAR", startOfDay, endOfDay);
-            int floorMonthlyMotorcycle = (int) parkingSessionRepository.countActiveMonthlySessions(
-                    floor.getFloorId(), "MOTORCYCLE", startOfDay, endOfDay);
+            int occupiedCar = floorMonthlyCar + singleCarInside;
+            int occupiedMotorcycle = floorMonthlyMotorcycle + singleMotorcycleInside;
 
             int availableCar = Math.max(0, floorTotalCarSlots - occupiedCar);
             int availableMotorcycle = Math.max(0, floorTotalMotorcycleSlots - occupiedMotorcycle);

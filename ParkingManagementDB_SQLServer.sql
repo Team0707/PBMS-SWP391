@@ -393,7 +393,7 @@ BEGIN
         CONSTRAINT FK_Requests_Vehicles FOREIGN KEY (VehicleID) REFERENCES dbo.Vehicles(VehicleID),
         CONSTRAINT CK_Requests_Type CHECK (RequestType IN (
             'LOST_CARD', 'CARD_RENEWAL', 'CARD_REGISTRATION', 'PLATE_CORRECTION',
-            'VEHICLE_TYPE_CORRECTION', 'CHECKIN_TIME_CORRECTION', 'OVERDUE_COMPLAINT', 'OTHER'
+            'VEHICLE_TYPE_CORRECTION', 'CHECKIN_TIME_CORRECTION', 'OVERDUE_COMPLAINT', 'SUPPORT', 'OTHER'
         )),
         CONSTRAINT CK_Requests_Priority CHECK (Priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT')),
         CONSTRAINT CK_Requests_Status CHECK (Status IN ('PENDING', 'PROCESSING', 'APPROVED', 'RESOLVED', 'REJECTED', 'CANCELLED'))
@@ -767,7 +767,9 @@ SELECT
     pt.FeeAmount,
     entryAccount.Username AS EntryStaff,
     exitAccount.Username AS ExitStaff,
-    pt.Status
+    pt.Status,
+    pt.EntryImage,
+    pt.ExitImage
 FROM dbo.ParkingSessions pt
 LEFT JOIN dbo.Cards c ON c.CardID = pt.CardID
 JOIN dbo.Floors f ON f.FloorID = pt.EntryFloorID

@@ -151,7 +151,9 @@ public class ReportServiceImpl implements ReportService {
                 floorName,
                 entryStaffName,
                 exitStaffName,
-                session.getStatus()
+                session.getStatus(),
+                session.getEntryImage(),
+                session.getExitImage()
         );
     }
 }

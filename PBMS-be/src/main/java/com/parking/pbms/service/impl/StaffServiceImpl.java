@@ -337,7 +337,7 @@ public class StaffServiceImpl implements StaffService {
             if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {
                 ViolationRule rule = ruleOpt.get();
                 long diffMs = java.time.Duration.between(checkIn, checkOutTime).toMillis();
-                long diffHours = (long) Math.ceil((double) diffMs / (1000 * 60 * 60));
+                long diffHours = (long) Math.floor((double) diffMs / (1000 * 60 * 60));
                 if (diffHours > rule.getMaxDurationHours()) {
                     long overdueHours = diffHours - rule.getMaxDurationHours();
                     penalty = rule.getPenaltyPerHour().multiply(BigDecimal.valueOf(overdueHours));
@@ -354,7 +354,7 @@ public class StaffServiceImpl implements StaffService {
                         LocalDateTime expireDateTime = card.getExpireAt().atTime(23, 59, 59);
                         if (checkOutTime.isAfter(expireDateTime)) {
                             long overMs = java.time.Duration.between(expireDateTime, checkOutTime).toMillis();
-                            long overdueHours = (long) Math.ceil((double) overMs / (1000 * 60 * 60));
+                            long overdueHours = (long) Math.floor((double) overMs / (1000 * 60 * 60));
                             if (overdueHours > 0) {
                                 Optional<ViolationRule> ruleOpt = violationRuleRepository.findByTicketTypeAndVehicleType(ticketType, vehicleType);
                                 if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {
@@ -506,7 +506,7 @@ public class StaffServiceImpl implements StaffService {
             if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {
                 ViolationRule rule = ruleOpt.get();
                 long diffMs = java.time.Duration.between(checkIn, checkOutTime).toMillis();
-                long diffHours = (long) Math.ceil((double) diffMs / (1000 * 60 * 60));
+                long diffHours = (long) Math.floor((double) diffMs / (1000 * 60 * 60));
                 if (diffHours > rule.getMaxDurationHours()) {
                     long overdueHours = diffHours - rule.getMaxDurationHours();
                     penalty = rule.getPenaltyPerHour().multiply(BigDecimal.valueOf(overdueHours));
@@ -523,7 +523,7 @@ public class StaffServiceImpl implements StaffService {
                         LocalDateTime expireDateTime = card.getExpireAt().atTime(23, 59, 59);
                         if (checkOutTime.isAfter(expireDateTime)) {
                             long overMs = java.time.Duration.between(expireDateTime, checkOutTime).toMillis();
-                            long overdueHours = (long) Math.ceil((double) overMs / (1000 * 60 * 60));
+                            long overdueHours = (long) Math.floor((double) overMs / (1000 * 60 * 60));
                             if (overdueHours > 0) {
                                 Optional<ViolationRule> ruleOpt = violationRuleRepository.findByTicketTypeAndVehicleType(ticketType, vehicleType);
                                 if (ruleOpt.isPresent() && ruleOpt.get().getIsActive()) {

@@ -1,13 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import {
   BarChart2, CreditCard, Users, Shield,
-  ChevronDown, ChevronRight, ParkingSquare, Bell, Home,
-  ArrowRightLeft, DollarSign, AlertTriangle,
-  List, RefreshCw, History,
-  UserCheck, Tag,
-  UserCog, FileText, ClipboardList, LogOut,
-  Layers, AlertOctagon, BookOpen, LifeBuoy,
-  CheckCircle, XCircle, Info,
+  ChevronDown, ChevronRight, ParkingSquare, Home,
+  ArrowRightLeft, History, Tag, AlertTriangle,
+  UserCheck, UserCog, ClipboardList, LogOut,
+  Layers, AlertOctagon,
 } from "lucide-react";
 
 export type Screen =
@@ -92,44 +89,8 @@ function getDefaultOpen(screen: Screen): Set<SectionKey> {
   return open;
 }
 
-interface Notif {
-  id: number;
-  icon: React.FC<{ className?: string }>;
-  iconColor: string;
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-}
-
-const SAMPLE_NOTIFS: Notif[] = [
-  { id: 1, icon: AlertTriangle, iconColor: "text-amber-500", title: "Vi phạm mới cần duyệt",        body: "VIO-006 đang chờ Admin duyệt.",                    time: "08:30",   read: false },
-  { id: 2, icon: ClipboardList, iconColor: "text-blue-500",  title: "Yêu cầu mới",                  body: "REQ-009 – Penalty Appeal từ người dùng Ngô Thị J.", time: "09:00",   read: false },
-  { id: 3, icon: AlertTriangle, iconColor: "text-orange-500",title: "Overdue – Alternative Slot",   body: "Reservation RES-007 chưa được xử lý (quá hạn 30p).",time: "10:15",   read: false },
-  { id: 4, icon: CheckCircle,   iconColor: "text-green-500", title: "Yêu cầu đã giải quyết",        body: "REQ-004 đã được staff02 đánh dấu Resolved.",        time: "Hôm qua", read: true },
-  { id: 5, icon: Info,          iconColor: "text-blue-500",  title: "Slot B1-A05 đã kích hoạt",     body: "Slot B1-A05 đã được bảo trì và kích hoạt lại.",     time: "11/6",    read: true },
-  { id: 6, icon: XCircle,       iconColor: "text-red-500",   title: "Refund Disputed",              body: "Yêu cầu hoàn tiền REQ-007 đang bị tranh chấp.",     time: "9/6",     read: true },
-];
-
 export default function Layout({ currentScreen, onNavigate, onLogout, children }: LayoutProps) {
   const [openSections, setOpenSections] = useState<Set<SectionKey>>(getDefaultOpen(currentScreen));
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifs, setNotifs] = useState<Notif[]>(SAMPLE_NOTIFS);
-  const notifRef = useRef<HTMLDivElement>(null);
-
-  const unread = notifs.filter(n => !n.read).length;
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const markAllRead = () => setNotifs(prev => prev.map(n => ({ ...n, read: true })));
 
   const toggleSection = (key: SectionKey) => {
     setOpenSections(prev => {
@@ -140,79 +101,82 @@ export default function Layout({ currentScreen, onNavigate, onLogout, children }
     });
   };
 
-  const breadcrumb = screenBreadcrumb[currentScreen] || currentScreen;
+  const breadcrumb = screenBreadcrumb[currentScreen] || "Dashboard";
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <div
+      className="flex h-screen w-screen overflow-hidden bg-gray-100"
+      style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+    >
       {/* Sidebar */}
-      <aside className="w-[220px] flex-shrink-0 bg-[#1a3560] flex flex-col overflow-hidden">
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-4 py-4 border-b border-blue-900/60">
-          <ParkingSquare className="w-7 h-7 text-sky-300 flex-shrink-0" />
-          <div>
-            <div className="text-white text-sm font-bold leading-tight tracking-wide">PARKING</div>
-            <div className="text-sky-300 text-xs leading-tight tracking-widest">SYSTEM</div>
+      <aside className="w-[210px] flex-shrink-0 bg-[#1e293b] flex flex-col overflow-hidden">
+        {/* Logo area */}
+        <div className="flex items-center gap-2 px-4 py-4 border-b border-slate-700">
+          <ParkingSquare className="w-7 h-7 text-sky-400 flex-shrink-0" />
+          <div className="flex flex-col">
+            <span className="text-white text-xs font-black tracking-wider uppercase leading-none">Parking</span>
+            <span className="text-sky-400 text-[10px] uppercase tracking-widest font-semibold mt-1">System</span>
           </div>
         </div>
 
-        {/* Top-level direct links */}
-        <div className="px-2 pt-2 pb-1 space-y-0.5">
+        {/* Menu list */}
+        <nav className="flex-1 px-2 py-3 space-y-1.5 overflow-y-auto">
+          {/* Dashboard item */}
           <button
             onClick={() => onNavigate("dashboard")}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors ${
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm font-medium transition-all ${
               currentScreen === "dashboard"
-                ? "bg-sky-500 text-white"
-                : "text-blue-100 hover:bg-blue-800/50"
+                ? "bg-[#2563eb] text-white shadow-sm font-semibold"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white"
             }`}
           >
             <Home className="w-4 h-4 flex-shrink-0" />
             <span>Dashboard</span>
           </button>
-        </div>
 
-        {/* Accordion sections */}
-        <nav className="flex-1 overflow-y-auto px-2 pb-4">
           {menuSections.map(section => {
+            const SectionIcon = section.icon;
             const isOpen = openSections.has(section.key);
-            const Icon = section.icon;
-            const hasActive = section.items.some(i => i.screen === currentScreen);
+            const anyActive = section.items.some(item => item.screen === currentScreen);
 
             return (
-              <div key={section.key} className="mb-0.5">
+              <div key={section.key} className="space-y-0.5">
                 <button
                   onClick={() => toggleSection(section.key)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors ${
-                    hasActive && !isOpen
-                      ? "text-white bg-blue-800/60"
-                      : "text-blue-200 hover:bg-blue-800/40 hover:text-white"
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm font-medium transition-all ${
+                    anyActive
+                      ? "text-white bg-slate-800/40"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="font-medium">{section.label}</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <SectionIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <span className="truncate">{section.label}</span>
                   </div>
-                  {isOpen
-                    ? <ChevronDown className="w-3.5 h-3.5" />
-                    : <ChevronRight className="w-3.5 h-3.5" />}
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform flex-shrink-0 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
                 {isOpen && (
-                  <div className="ml-2 mt-0.5 space-y-0.5">
+                  <div className="pl-4 pr-1 py-0.5 space-y-0.5 border-l border-slate-700/60 ml-5">
                     {section.items.map(item => {
                       const ItemIcon = item.icon;
-                      const isActive = currentScreen === item.screen;
+                      const active = currentScreen === item.screen;
                       return (
                         <button
                           key={item.screen}
                           onClick={() => onNavigate(item.screen)}
-                          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-xs transition-colors ${
-                            isActive
-                              ? "bg-sky-500 text-white font-medium"
-                              : "text-blue-200 hover:bg-blue-700/50 hover:text-white"
+                          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-xs transition-all ${
+                            active
+                              ? "bg-[#2563eb]/95 text-white font-semibold"
+                              : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                           }`}
                         >
                           <ItemIcon className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>{item.label}</span>
+                          <span className="truncate">{item.label}</span>
                         </button>
                       );
                     })}
@@ -223,8 +187,8 @@ export default function Layout({ currentScreen, onNavigate, onLogout, children }
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="px-2 pb-4">
+        {/* Bottom Area */}
+        <div className="p-2 border-t border-slate-700/80">
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded text-sm text-red-300 hover:bg-red-900/30 hover:text-red-200 transition-colors"
@@ -253,41 +217,6 @@ export default function Layout({ currentScreen, onNavigate, onLogout, children }
             ))}
           </div>
           <div className="flex items-center gap-3">
-            {/* Bell + Notification Dropdown */}
-            <div className="relative" ref={notifRef}>
-              <button onClick={() => setNotifOpen(o => !o)} className="relative text-gray-500 hover:text-gray-700">
-                <Bell className="w-4 h-4" />
-                {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center">{unread}</span>
-                )}
-              </button>
-              {notifOpen && (
-                <div className="absolute right-0 top-7 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-700">Thông báo</span>
-                    <button onClick={markAllRead} className="text-xs text-blue-600 hover:underline">Đánh dấu tất cả đã đọc</button>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifs.map(n => {
-                      const Icon = n.icon;
-                      return (
-                        <div key={n.id} className={`flex gap-2.5 px-3 py-2.5 border-b border-gray-50 hover:bg-gray-50 cursor-pointer ${!n.read ? "bg-blue-50/40" : ""}`}>
-                          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${n.iconColor}`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between gap-1">
-                              <span className={`text-xs font-medium truncate ${!n.read ? "text-gray-800" : "text-gray-600"}`}>{n.title}</span>
-                              <span className="text-[10px] text-gray-400 flex-shrink-0">{n.time}</span>
-                            </div>
-                            <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{n.body}</p>
-                          </div>
-                          {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">A</div>
               <span className="text-xs text-gray-700">

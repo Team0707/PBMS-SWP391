@@ -183,7 +183,9 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         int cardCount = 0;
         if ("USER".equalsIgnoreCase(account.getRoleName())) {
-            cardCount = cardRepository.findMonthlyAndDayCardsByAccountId(account.getAccountId()).size();
+            cardCount = (int) cardRepository.findMonthlyAndDayCardsByAccountId(account.getAccountId()).stream()
+                    .filter(c -> !"PENDING".equalsIgnoreCase(c.getStatus()) && !"INACTIVE".equalsIgnoreCase(c.getStatus()))
+                    .count();
         }
 
         return new UserResponse(

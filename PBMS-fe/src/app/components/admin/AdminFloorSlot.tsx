@@ -112,7 +112,7 @@ export default function AdminFloorSlot() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Card 1: Tổng slot ô tô */}
         <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
@@ -138,32 +138,6 @@ export default function AdminFloorSlot() {
             </div>
           </div>
         </div>
-
-        {/* Card 3: Ô tô vé tháng đang gửi */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-            <CreditCard className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tổng ô tô đặt trước chưa gửi</div>
-            <div className="text-2xl font-black text-indigo-600 mt-1">
-              {loading ? "..." : stats?.monthlyCarInside ?? 0}
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Xe máy vé tháng đang gửi */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-            <CreditCard className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tổng xe máy đặt trước chưa gửi</div>
-            <div className="text-2xl font-black text-amber-600 mt-1">
-              {loading ? "..." : stats?.monthlyMotorcycleInside ?? 0}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Main Stats Table Card */}
@@ -184,18 +158,14 @@ export default function AdminFloorSlot() {
                 <th className="px-4 py-3 text-left">Tầng</th>
                 <th className="px-4 py-3 text-center">Tổng slot ô tô</th>
                 <th className="px-4 py-3 text-center">Trống ô tô</th>
-                <th className="px-4 py-3 text-center">Ô tô đang gửi</th>
-                <th className="px-4 py-3 text-center">Tổng ô tô đặt trước chưa gửi</th>
                 <th className="px-4 py-3 text-center">Tổng slot xe máy</th>
                 <th className="px-4 py-3 text-center">Trống xe máy</th>
-                <th className="px-4 py-3 text-center">Xe máy đang gửi</th>
-                <th className="px-4 py-3 text-center">Tổng xe máy đặt trước chưa gửi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={5} className="px-4 py-12 text-center text-gray-400 text-sm">
                     <div className="flex justify-center items-center gap-2">
                       <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
                       Đang tải thống kê...
@@ -204,7 +174,7 @@ export default function AdminFloorSlot() {
                 </tr>
               ) : !stats || stats.floorStats.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={5} className="px-4 py-12 text-center text-gray-400 text-sm">
                     Không tìm thấy dữ liệu thống kê nào.
                   </td>
                 </tr>
@@ -225,18 +195,6 @@ export default function AdminFloorSlot() {
                         {floor.availableCarSlots}
                       </span>
                     </td>
-                    {/* Ô tô đang gửi */}
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="inline-flex justify-center items-center min-w-[34px] px-2.5 py-0.5 rounded text-xs font-bold bg-red-50 text-red-700">
-                        {floor.occupiedCarSlots}
-                      </span>
-                    </td>
-                    {/* Ô tô vé tháng đang gửi */}
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="inline-flex justify-center items-center w-8 h-8 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm mx-auto">
-                        {floor.monthlyCarInside}
-                      </span>
-                    </td>
                     {/* Tổng slot xe máy */}
                     <td className="px-4 py-3.5 text-center text-sm font-semibold text-gray-700">
                       {floor.totalMotorcycleSlots}
@@ -245,18 +203,6 @@ export default function AdminFloorSlot() {
                     <td className="px-4 py-3.5 text-center">
                       <span className="inline-flex justify-center items-center min-w-[34px] px-2.5 py-0.5 rounded text-xs font-bold bg-green-50 text-green-700">
                         {floor.availableMotorcycleSlots}
-                      </span>
-                    </td>
-                    {/* Xe máy đang gửi */}
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="inline-flex justify-center items-center min-w-[34px] px-2.5 py-0.5 rounded text-xs font-bold bg-red-50 text-red-700">
-                        {floor.occupiedMotorcycleSlots}
-                      </span>
-                    </td>
-                    {/* Xe máy vé tháng đang gửi */}
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="inline-flex justify-center items-center w-8 h-8 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100 shadow-sm mx-auto">
-                        {floor.monthlyMotorcycleInside}
                       </span>
                     </td>
                   </tr>

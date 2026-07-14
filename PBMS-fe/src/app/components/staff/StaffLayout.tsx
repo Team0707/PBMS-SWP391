@@ -1,11 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import {
   Home, LogOut, History,
-  ParkingSquare, Bell, ChevronRight,
+  ParkingSquare, ChevronRight,
   ArrowDownToLine, ArrowUpFromLine,
-  ClipboardList, AlertOctagon,
-  CheckCircle, AlertTriangle, Info, XCircle,
-  Layers,
+  Layers, AlertOctagon,
 } from "lucide-react";
 import { FloorDto, StaffAssignmentDto } from "../../../services/staffService";
 
@@ -47,24 +45,6 @@ const breadcrumbMap: Record<StaffScreen, string> = {
   "exceptions":          "Hỗ trợ",
 };
 
-interface Notif {
-  id: number;
-  icon: React.FC<{ className?: string }>;
-  iconColor: string;
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-}
-
-const SAMPLE_NOTIFS: Notif[] = [
-  { id: 1, icon: ClipboardList,  iconColor: "text-blue-500",   title: "Yêu cầu mới được phân công", body: "REQ-010 – Penalty Appeal đã được giao cho bạn.",     time: "10:30",   read: false },
-  { id: 2, icon: AlertTriangle,  iconColor: "text-amber-500",  title: "Cần xử lý gấp",              body: "REQ-002 – Wrong Slot đang ở mức ưu tiên Cao.",       time: "08:10",   read: false },
-  { id: 3, icon: CheckCircle,    iconColor: "text-green-500",  title: "Vi phạm đã được duyệt",      body: "VIO-003 đã được Admin duyệt (Approved-Unpaid).",      time: "Hôm qua", read: true },
-  { id: 4, icon: Info,           iconColor: "text-blue-500",   title: "Alternative Slot – Hold",    body: "Slot B1-B04 đang được hold 30 phút cho RES-004.",     time: "09:20",   read: true },
-  { id: 5, icon: XCircle,        iconColor: "text-red-500",    title: "Vi phạm bị từ chối",         body: "VIO-007 bị Admin từ chối – cần xem lại bằng chứng.", time: "8/6",     read: true },
-];
-
 export default function StaffLayout({
   currentScreen,
   onNavigate,
@@ -76,23 +56,6 @@ export default function StaffLayout({
   onFloorChange,
   assignment,
 }: StaffLayoutProps) {
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifs, setNotifs] = useState<Notif[]>(SAMPLE_NOTIFS);
-  const notifRef = useRef<HTMLDivElement>(null);
-
-  const unread = notifs.filter(n => !n.read).length;
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const markAllRead = () => setNotifs(prev => prev.map(n => ({ ...n, read: true })));
 
   const allowedNavItems = navItems.filter(item => {
     if (!assignment) {
@@ -126,19 +89,19 @@ export default function StaffLayout({
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+        {/* Navigation list */}
+        <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto">
           {allowedNavItems.map(item => {
             const Icon = item.icon;
-            const isActive = currentScreen === item.screen;
+            const active = currentScreen === item.screen;
             return (
               <button
                 key={item.screen}
                 onClick={() => onNavigate(item.screen)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded text-sm transition-colors ${
-                  isActive
-                    ? "bg-sky-500 text-white font-medium"
-                    : "text-blue-200 hover:bg-blue-800/50 hover:text-white"
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm font-medium transition-all ${
+                  active
+                    ? "bg-[#2563eb] text-white shadow-sm"
+                    : "text-blue-100 hover:bg-blue-900/20 hover:text-white"
                 }`}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
@@ -148,7 +111,7 @@ export default function StaffLayout({
           })}
         </nav>
 
-        {/* Logout */}
+        {/* Bottom logout */}
         <div className="px-2 pb-4">
           <button
             onClick={onLogout}
@@ -160,7 +123,7 @@ export default function StaffLayout({
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main Panel */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
         <header className="h-11 bg-[#dbeafe] border-b border-blue-200 flex items-center justify-between px-4 flex-shrink-0 shadow-sm">
@@ -181,43 +144,8 @@ export default function StaffLayout({
             )}
           </div>
           <div className="flex items-center gap-3">
-            {/* Bell + Notification Dropdown */}
-            <div className="relative" ref={notifRef}>
-              <button onClick={() => setNotifOpen(o => !o)} className="relative text-gray-500 hover:text-gray-700">
-                <Bell className="w-4 h-4" />
-                {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center">{unread}</span>
-                )}
-              </button>
-              {notifOpen && (
-                <div className="absolute right-0 top-7 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-700">Thông báo</span>
-                    <button onClick={markAllRead} className="text-xs text-blue-600 hover:underline">Đánh dấu tất cả đã đọc</button>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifs.map(n => {
-                      const Icon = n.icon;
-                      return (
-                        <div key={n.id} className={`flex gap-2.5 px-3 py-2.5 border-b border-gray-50 hover:bg-gray-50 cursor-pointer ${!n.read ? "bg-blue-50/40" : ""}`}>
-                          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${n.iconColor}`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between gap-1">
-                              <span className={`text-xs font-medium truncate ${!n.read ? "text-gray-800" : "text-gray-600"}`}>{n.title}</span>
-                              <span className="text-[10px] text-gray-400 flex-shrink-0">{n.time}</span>
-                            </div>
-                            <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{n.body}</p>
-                          </div>
-                          {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-7 h-7 rounded-full bg-[#10b981] text-white flex items-center justify-center text-xs font-bold">
                 {staffName.charAt(0)}
               </div>
               <span className="text-xs text-gray-700">
@@ -234,7 +162,7 @@ export default function StaffLayout({
           </div>
         </header>
 
-        {/* Content */}
+        {/* Content body */}
         <main className="flex-1 overflow-y-auto p-3 bg-gray-100">
           {children}
         </main>

@@ -19,5 +19,7 @@ public record VehicleReportResponse(
     String floorName,
     String entryStaffName,
     String exitStaffName,
-    String status
+    String status,
+    String entryImage,
+    String exitImage
 ) {}

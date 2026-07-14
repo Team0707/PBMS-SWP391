@@ -40,7 +40,6 @@ interface CardDetail {
   id: number;
   nhomThe: string;
   maThe: string;
-  cardNo: string;
   bienSo: string;
   khachHang: string;
   ngayDangKy: string;
@@ -104,23 +103,15 @@ function CustomerCardsModal({
       try {
         const data = await adminCardService.getUserCards(customer.id);
         setCards(
-          data.map((item) => ({
-            id: item.cardId,
-            nhomThe: item.groupName,
-            maThe: item.cardNo,
-            cardNo: item.rfidUid || "",
-            bienSo: item.plateNo || "",
+          data.map((item: any) => ({
+            id: item.id,
+            nhomThe: item.nhomThe || "",
+            maThe: item.cardNo || "",
+            bienSo: item.bienSo || "",
             khachHang: customer.hoTen,
-            ngayDangKy: item.registeredAt || "",
-            ngayHetHan: item.expireAt || "",
-            trangThai:
-              item.status === "ACTIVE"
-                ? "Hoạt động"
-                : item.status === "EXPIRED"
-                  ? "Hết hạn"
-                  : item.status === "EXPIRING"
-                    ? "Sắp hết hạn"
-                    : "Khóa",
+            ngayDangKy: item.ngayDangKy || "",
+            ngayHetHan: item.ngayHetHan || "",
+            trangThai: item.trangThai || "Khóa",
             ghiChu: item.note || "",
           }))
         );
@@ -201,7 +192,6 @@ function CustomerCardsModal({
               <thead>
                 <tr className="border-y border-gray-300 bg-gray-100">
                   <th className={cls.th}>Mã thẻ</th>
-                  <th className={cls.th}>CardNo (RFID)</th>
                   <th className={cls.th}>Nhóm thẻ</th>
                   <th className={cls.th}>Biển số</th>
                   <th className={cls.th}>Ngày HH</th>
@@ -222,9 +212,8 @@ function CustomerCardsModal({
                         {card.maThe}
                       </span>
                     </td>
-                    <td className={cls.td}>{card.cardNo}</td>
                     <td className={cls.td}>
-                      <span className={cls.badge.green}>
+                      <span className={cls.badge.blue}>
                         {card.nhomThe}
                       </span>
                     </td>
