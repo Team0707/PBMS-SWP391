@@ -246,7 +246,7 @@ public class StaffServiceImpl implements StaffService {
         Staff staff = staffRepository.findByAccountId(account.getAccountId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên tương ứng với tài khoản: " + username));
 
-        String input = request.ticketNoOrQrToken().trim().toUpperCase();
+        String input = request.parkingSessionNoOrQrToken().trim().toUpperCase();
         Optional<ParkingSession> ticketOpt = Optional.empty();
 
         // 1. Try by ticket number
@@ -424,14 +424,14 @@ public class StaffServiceImpl implements StaffService {
 
     @Override
     @Transactional
-    public StaffTicketResponse previewCheckOut(String ticketNoOrQrToken, String username) {
+    public StaffTicketResponse previewCheckOut(String parkingSessionNoOrQrToken, String username) {
         // Find staff
         Account account = accountRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
         Staff staff = staffRepository.findByAccountId(account.getAccountId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên tương ứng với tài khoản: " + username));
 
-        String input = ticketNoOrQrToken.trim().toUpperCase();
+        String input = parkingSessionNoOrQrToken.trim().toUpperCase();
         Optional<ParkingSession> ticketOpt = Optional.empty();
 
         ticketOpt = ParkingSessionRepository.findBySessionNo(input);

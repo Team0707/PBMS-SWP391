@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class PaymentRequest {
-    private Long ticketId;
+    private Long parkingSessionId;
     private String ipAddr;
 }

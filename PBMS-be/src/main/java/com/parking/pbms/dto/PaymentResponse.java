@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 @Builder
 public class PaymentResponse {
     private Long paymentId;
-    private Long ticketId;
+    private Long parkingSessionId;
     private BigDecimal amount;
     private String description;
     private String status;

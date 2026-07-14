@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record StaffCheckOutRequest(
         @NotBlank(message = "Mã vé hoặc token QR không được để trống")
-        String ticketNoOrQrToken,
+        String parkingSessionNoOrQrToken,
 
         // Phuong thuc thanh toan: CASH hoac VNPAY (optional, default = VNPAY)
         String paymentMethod,

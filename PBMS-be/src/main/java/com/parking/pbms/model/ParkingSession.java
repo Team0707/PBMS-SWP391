@@ -16,10 +16,10 @@ public class ParkingSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "TicketID")
+    @Column(name = "ParkingSessionID")
     private Long sessionId;
 
-    @Column(name = "TicketNo", insertable = false, updatable = false)
+    @Column(name = "ParkingSessionNo", insertable = false, updatable = false)
     private String sessionNo;
 
     @Column(name = "Barcode", nullable = false)

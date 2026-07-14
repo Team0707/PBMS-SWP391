@@ -31,9 +31,9 @@ public class PaymentController {
         );
     }
 
-    @GetMapping("/check-status/{ticketId}")
-    public ResponseEntity<ApiResponse<PaymentResponse>> checkStatus(@PathVariable Long ticketId) {
-        PaymentResponse response = paymentService.checkStatus(ticketId);
+    @GetMapping("/check-status/{parkingSessionId}")
+    public ResponseEntity<ApiResponse<PaymentResponse>> checkStatus(@PathVariable Long parkingSessionId) {
+        PaymentResponse response = paymentService.checkStatus(parkingSessionId);
         return ResponseEntity.ok(
                 ApiResponse.success(
                         200,

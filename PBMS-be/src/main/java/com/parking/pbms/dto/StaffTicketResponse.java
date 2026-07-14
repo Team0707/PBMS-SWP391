@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record StaffTicketResponse(
-        Long ticketId,
-        String ticketNo,
+        Long parkingSessionId,
+        String parkingSessionNo,
         String qrToken,
         String ticketType,
         String vehicleType,

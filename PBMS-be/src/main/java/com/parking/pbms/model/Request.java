@@ -30,8 +30,8 @@ public class Request {
     @Column(name = "AssignedStaffID")
     private Integer assignedStaffId;
 
-    @Column(name = "TicketID")
-    private Long ticketId;
+    @Column(name = "ParkingSessionID")
+    private Long parkingSessionId;
 
     @Column(name = "CardID")
     private Integer cardId;

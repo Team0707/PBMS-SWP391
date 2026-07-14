@@ -445,7 +445,7 @@ export default function VehicleEntry({ selectedFloorCode }: VehicleEntryProps) {
 
       const payload: Ticket = {
         version: 1,
-        maVe: resp.ticketNo,
+        maVe: resp.parkingSessionNo,
         bienSo: resp.plateNoSnapshot,
         loaiXe: resp.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô",
         tgVao: new Date(resp.checkInAt).toLocaleString("vi-VN"),
@@ -459,7 +459,7 @@ export default function VehicleEntry({ selectedFloorCode }: VehicleEntryProps) {
       setPrinted(false);
 
       try {
-        localStorage.setItem("parking-ticket:last", resp.qrToken || resp.ticketNo);
+        localStorage.setItem("parking-ticket:last", resp.qrToken || resp.parkingSessionNo);
       } catch (e) {}
     } catch (err: any) {
       setErrorMsg(err.message || "Tạo vé xe thất bại.");

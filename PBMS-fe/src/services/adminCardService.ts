@@ -265,8 +265,8 @@ export interface VehicleReportParams {
 }
 
 export interface VehicleReportDto {
-  ticketId: number;
-  ticketNo: string;
+  parkingSessionId: number;
+  parkingSessionNo: string;
   cardNo: string;
   rfidUid: string;
   plateNo: string;

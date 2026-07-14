@@ -21,8 +21,8 @@ export interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  ticketId: number;
-  ticketNo: string;
+  parkingSessionId: number;
+  parkingSessionNo: string;
   plateNo: string;
   vehicleType: string;
   checkInAt: string;
@@ -53,8 +53,8 @@ export default function PaymentModal({
   isOpen,
   onClose,
   onSuccess,
-  ticketId,
-  ticketNo,
+  parkingSessionId,
+  parkingSessionNo,
   plateNo,
   vehicleType,
   checkInAt,
@@ -120,14 +120,14 @@ export default function PaymentModal({
     try {
       if (method === "CASH") {
         await apiFetch("/staff/checkout-payment", {
-          ticketId,
+          parkingSessionId,
           paymentMethod: "CASH",
         });
         setStep("success");
       } else {
         // VNPay: lay link thanh toan
         const data = await apiFetch("/staff/checkout-payment", {
-          ticketId,
+          parkingSessionId,
           paymentMethod: "VNPAY",
           ipAddr: "127.0.0.1",
         });
@@ -140,7 +140,7 @@ export default function PaymentModal({
         pollRef.current = setInterval(async () => {
           pollCount++;
           try {
-            const status = await apiFetch(`/staff/payment-status/${ticketId}`);
+            const status = await apiFetch(`/staff/payment-status/${parkingSessionId}`);
             if (status === "PAID") {
               clearTimers();
               setStep("success");
@@ -173,7 +173,7 @@ export default function PaymentModal({
   const TicketInfo = () => (
     <div className="grid grid-cols-2 gap-y-1.5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-[12px]">
       <span className="text-gray-500">Mã vé:</span>
-      <span className="text-right font-bold text-gray-800">{ticketNo}</span>
+      <span className="text-right font-bold text-gray-800">{parkingSessionNo}</span>
       <span className="text-gray-500">Biển số xe:</span>
       <span className="text-right font-bold text-gray-800">{plateNo}</span>
       <span className="text-gray-500">Loại xe:</span>

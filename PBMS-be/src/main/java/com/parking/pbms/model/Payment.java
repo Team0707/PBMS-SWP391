@@ -24,8 +24,8 @@ public class Payment {
     @Column(name = "PayerAccountID")
     private Integer payerAccountId;
 
-    @Column(name = "TicketID")
-    private Long ticketId;
+    @Column(name = "ParkingSessionID")
+    private Long parkingSessionId;
 
     @Column(name = "CardID")
     private Integer cardId;

@@ -174,7 +174,7 @@ export default function VehicleEntryExit() {
       const result = await adminCardService.getVehicleReport(params);
       setData(
         result.map((item, index) => ({
-          id: Number(item.ticketId),
+          id: Number(item.parkingSessionId),
           stt: index + 1,
           cardNo: item.rfidUid || "",
           maThe: item.cardNo || "",

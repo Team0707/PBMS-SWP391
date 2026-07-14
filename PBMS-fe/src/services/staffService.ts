@@ -25,7 +25,7 @@ export interface StaffCheckInRequest {
 }
 
 export interface StaffCheckOutRequest {
-  ticketNoOrQrToken: string;
+  parkingSessionNoOrQrToken: string;
   floorCode?: string;
   paymentMethod?: "CASH" | "VNPAY";
   exitImage?: string;
@@ -33,8 +33,8 @@ export interface StaffCheckOutRequest {
 }
 
 export interface StaffTicketResponse {
-  ticketId: number;
-  ticketNo: string;
+  parkingSessionId: number;
+  parkingSessionNo: string;
   qrToken: string;
   ticketType: string;
   vehicleType: string;
@@ -193,8 +193,8 @@ export const staffService = {
     return result.data;
   },
 
-  async previewCheckOut(ticketNoOrQrToken: string): Promise<StaffTicketResponse> {
-    const response = await authFetch(`${API_URL}/staff/check-out-preview?ticketNoOrQrToken=${encodeURIComponent(ticketNoOrQrToken)}`);
+  async previewCheckOut(parkingSessionNoOrQrToken: string): Promise<StaffTicketResponse> {
+    const response = await authFetch(`${API_URL}/staff/check-out-preview?parkingSessionNoOrQrToken=${encodeURIComponent(parkingSessionNoOrQrToken)}`);
     const result: ApiResponse<StaffTicketResponse> = await safeJson(response);
     if (!response.ok) throw new Error(result.message || "Xem trước thông tin xe ra thất bại.");
     return result.data;
@@ -305,8 +305,8 @@ export const staffService = {
     return result.data;
   },
 
-  async checkPaymentStatus(ticketId: number): Promise<string> {
-    const response = await authFetch(`${API_URL}/payments/check-status/${ticketId}`);
+  async checkPaymentStatus(parkingSessionId: number): Promise<string> {
+    const response = await authFetch(`${API_URL}/payments/check-status/${parkingSessionId}`);
     const result: ApiResponse<string> = await safeJson(response);
     if (!response.ok) throw new Error(result.message || "Không thể kiểm tra trạng thái thanh toán.");
     return result.data;
