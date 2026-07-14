@@ -75,6 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment = paymentRepository.save(payment);
 
         long orderCode = payment.getPaymentId().longValue();
+        String newReferenceCode = "ThanhToanVeXe_" + ticket.getSessionId() + "_" + System.currentTimeMillis();
 
         try {
             long amount = totalAmount.longValue();
@@ -102,7 +103,7 @@ public class PaymentServiceImpl implements PaymentService {
             }
             // NẾU SỐ TIỀN > 0 VND: Tiến hành tạo link thanh toán VNPay bình thường
             else {
-                String ip = (request.getIpAddr() != null && !request.getIpAddr().isBlank())
+                ip = (request.getIpAddr() != null && !request.getIpAddr().isBlank())
                         ? request.getIpAddr() : "127.0.0.1";
                 paymentUrl = vnPayConfig.createPaymentUrl(
                         orderCode,
