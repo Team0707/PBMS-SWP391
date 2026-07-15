@@ -13,7 +13,8 @@ import com.parking.pbms.repository.PaymentRepository;
 import com.parking.pbms.service.PaymentService;
 import com.parking.pbms.config.VnPayConfig;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +27,9 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class PaymentServiceImpl implements PaymentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentServiceImpl.class);
 
     private final PaymentRepository paymentRepository;
     private final ParkingSessionRepository ticketRepository;

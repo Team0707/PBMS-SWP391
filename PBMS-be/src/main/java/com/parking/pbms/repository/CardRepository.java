@@ -30,9 +30,5 @@ public interface CardRepository extends JpaRepository<Card, Integer> {
     @Query("SELECT c FROM Card c WHERE c.status = 'ACTIVE' AND c.expireAt IS NOT NULL AND c.expireAt < :today")
     List<Card> findExpiredActiveCards(@Param("today") LocalDate today);
 
-    @Query("SELECT COUNT(c) FROM Card c JOIN CardGroup cg ON c.cardGroupId = cg.cardGroupId " +
-           "WHERE c.status = 'ACTIVE' AND c.preferredFloorID = :floorId " +
-           "AND cg.vehicleType = :vehicleType AND cg.ticketType IN ('MONTHLY', 'DAY')")
-    long countActiveMonthlyAndDayCards(@Param("floorId") Integer floorId, @Param("vehicleType") String vehicleType);
 }
 
