@@ -316,8 +316,8 @@ GO
 IF OBJECT_ID(N'dbo.ParkingSessions', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ParkingSessions (
-        TicketID             BIGINT IDENTITY(1,1) PRIMARY KEY,
-        TicketNo             AS ('TK' + RIGHT('000000' + CONVERT(VARCHAR(20), TicketID), 6)) PERSISTED,
+        ParkingSessionID     BIGINT IDENTITY(1,1) PRIMARY KEY,
+        ParkingSessionNo     AS ('PSN' + RIGHT('000000' + CONVERT(VARCHAR(20), ParkingSessionID), 6)) PERSISTED,
         Barcode              VARCHAR(500) NOT NULL,
         CardID               INT NULL,
         VehicleID            INT NULL,
@@ -340,8 +340,7 @@ BEGIN
         ForceCheckoutReason  NVARCHAR(500) NULL,
         CreatedAt            DATETIME2(0) NOT NULL CONSTRAINT DF_ParkingSessions_CreatedAt DEFAULT SYSDATETIME(),
         UpdatedAt            DATETIME2(0) NOT NULL CONSTRAINT DF_ParkingSessions_UpdatedAt DEFAULT SYSDATETIME(),
-        CONSTRAINT UQ_ParkingSessions_No UNIQUE (TicketNo),
-        CONSTRAINT UQ_ParkingSessions_Barcode UNIQUE (Barcode),
+        CONSTRAINT UQ_ParkingSessions_No UNIQUE (ParkingSessionNo),
         CONSTRAINT FK_ParkingSessions_Cards FOREIGN KEY (CardID) REFERENCES dbo.Cards(CardID),
         CONSTRAINT FK_ParkingSessions_Vehicles FOREIGN KEY (VehicleID) REFERENCES dbo.Vehicles(VehicleID),
         CONSTRAINT FK_ParkingSessions_Reservations FOREIGN KEY (ReservationID) REFERENCES dbo.Reservations(ReservationID),
@@ -388,13 +387,13 @@ BEGIN
         CONSTRAINT UQ_Requests_No UNIQUE (RequestNo),
         CONSTRAINT FK_Requests_Sender FOREIGN KEY (SenderAccountID) REFERENCES dbo.Accounts(AccountID),
         CONSTRAINT FK_Requests_AssignedStaff FOREIGN KEY (AssignedStaffID) REFERENCES dbo.Staff(StaffID),
-        CONSTRAINT FK_Requests_Tickets FOREIGN KEY (TicketID) REFERENCES dbo.ParkingSessions(TicketID),
+        CONSTRAINT FK_Requests_ParkingSessions FOREIGN KEY (ParkingSessionID) REFERENCES dbo.ParkingSessions(ParkingSessionID),
         CONSTRAINT FK_Requests_Cards FOREIGN KEY (CardID) REFERENCES dbo.Cards(CardID),
         CONSTRAINT FK_Requests_Reservations FOREIGN KEY (ReservationID) REFERENCES dbo.Reservations(ReservationID),
         CONSTRAINT FK_Requests_Vehicles FOREIGN KEY (VehicleID) REFERENCES dbo.Vehicles(VehicleID),
         CONSTRAINT CK_Requests_Type CHECK (RequestType IN (
             'LOST_CARD', 'CARD_RENEWAL', 'CARD_REGISTRATION', 'PLATE_CORRECTION',
-            'VEHICLE_TYPE_CORRECTION', 'CHECKIN_TIME_CORRECTION', 'OVERDUE_COMPLAINT', 'OTHER'
+            'VEHICLE_TYPE_CORRECTION', 'CHECKIN_TIME_CORRECTION', 'OVERDUE_COMPLAINT', 'SUPPORT', 'OTHER'
         )),
         CONSTRAINT CK_Requests_Priority CHECK (Priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT')),
         CONSTRAINT CK_Requests_Status CHECK (Status IN ('PENDING', 'PROCESSING', 'APPROVED', 'RESOLVED', 'REJECTED', 'CANCELLED'))
@@ -411,8 +410,8 @@ BEGIN
     CREATE TABLE dbo.Payments (
         PaymentID         BIGINT IDENTITY(1,1) PRIMARY KEY,
         PaymentNo         AS ('PMT' + RIGHT('000000' + CONVERT(VARCHAR(20), PaymentID), 6)) PERSISTED,
-        PayerAccountID    INT NOT NULL,
-        TicketID          BIGINT NULL,
+        PayerAccountID    INT NULL,
+        ParkingSessionID  BIGINT NULL,
         CardID            INT NULL,
         Amount            DECIMAL(18,2) NOT NULL,
         PaymentType       VARCHAR(30) NOT NULL,
@@ -426,7 +425,7 @@ BEGIN
         UpdatedAt         DATETIME2(0) NOT NULL CONSTRAINT DF_Payments_UpdatedAt DEFAULT SYSDATETIME(),
         CONSTRAINT UQ_Payments_No UNIQUE (PaymentNo),
         CONSTRAINT FK_Payments_Accounts FOREIGN KEY (PayerAccountID) REFERENCES dbo.Accounts(AccountID),
-        CONSTRAINT FK_Payments_Tickets FOREIGN KEY (TicketID) REFERENCES dbo.ParkingSessions(TicketID),
+        CONSTRAINT FK_Payments_ParkingSessions FOREIGN KEY (ParkingSessionID) REFERENCES dbo.ParkingSessions(ParkingSessionID),
         CONSTRAINT FK_Payments_Cards FOREIGN KEY (CardID) REFERENCES dbo.Cards(CardID),
         CONSTRAINT CK_Payments_Type CHECK (PaymentType IN ('PARKING_FEE', 'CARD_REGISTRATION', 'CARD_RENEWAL', 'PENALTY', 'REFUND')),
         CONSTRAINT CK_Payments_Method CHECK (PaymentMethod IN ('CASH', 'VIETQR', 'MOMO', 'ZALOPAY', 'VNPAY', 'BANK_TRANSFER', 'OTHER')),
@@ -615,26 +614,6 @@ IF NOT EXISTS (SELECT 1 FROM dbo.[User] up JOIN dbo.Accounts a ON a.AccountID = 
     WHERE a.Username = 'user02';
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '29X1-123.45')
-    INSERT dbo.Vehicles(AccountID, PlateNo, VehicleType, Brand, Color)
-    SELECT AccountID, '29X1-123.45', 'MOTORCYCLE', N'Honda', N'Đen' FROM dbo.Accounts WHERE Username = 'user01';
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '51A-123.45')
-    INSERT dbo.Vehicles(AccountID, PlateNo, VehicleType, Brand, Color)
-    SELECT AccountID, '51A-123.45', 'CAR', N'Toyota', N'Trắng' FROM dbo.Accounts WHERE Username = 'user01';
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '43A-999.11')
-    INSERT dbo.Vehicles(AccountID, PlateNo, VehicleType, Brand, Color)
-    SELECT AccountID, '43A-999.11', 'MOTORCYCLE', N'Yamaha', N'Xanh' FROM dbo.Accounts WHERE Username = 'user02';
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '51F-888.88')
-    INSERT dbo.Vehicles(AccountID, PlateNo, VehicleType, Brand, Color)
-    SELECT AccountID, '51F-888.88', 'CAR', N'Kia', N'Đen' FROM dbo.Accounts WHERE Username = 'user02';
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Vehicles WHERE PlateNo = '59A-123.45')
-    INSERT dbo.Vehicles(AccountID, PlateNo, VehicleType, Brand, Color)
-    VALUES (NULL, '59A-123.45', 'MOTORCYCLE', N'Honda', N'Đỏ');
-GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Floors WHERE FloorCode = 'B1')
     INSERT dbo.Floors(FloorCode, FloorName, VehicleType, TotalSlots, TotalCarSlots, TotalMotorcycleSlots, Note) 

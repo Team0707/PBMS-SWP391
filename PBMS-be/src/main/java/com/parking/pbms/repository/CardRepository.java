@@ -13,6 +13,14 @@ public interface CardRepository extends JpaRepository<Card, Integer> {
     @Query("SELECT c FROM Card c JOIN CardGroup cg ON c.cardGroupId = cg.cardGroupId WHERE c.accountId = :accountId AND cg.ticketType IN ('MONTHLY', 'DAY')")
     List<Card> findMonthlyAndDayCardsByAccountId(@Param("accountId") Integer accountId);
 
+    @Query("SELECT COUNT(c) FROM Card c JOIN CardGroup cg ON c.cardGroupId = cg.cardGroupId " +
+           "WHERE c.preferredFloorID = :floorId AND cg.vehicleType = :vehicleType " +
+           "AND cg.ticketType IN ('MONTHLY', 'DAY') AND c.status = 'ACTIVE'")
+    long countActiveMonthlyAndDayCards(
+            @Param("floorId") Integer floorId,
+            @Param("vehicleType") String vehicleType
+    );
+
     Optional<Card> findByCardNo(String cardNo);
 
     /**

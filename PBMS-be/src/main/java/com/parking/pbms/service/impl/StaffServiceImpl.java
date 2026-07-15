@@ -222,11 +222,11 @@ public class StaffServiceImpl implements StaffService {
 
         // Fetch re-loaded entity to get DB computed TicketNo
         ticket = ParkingSessionRepository.findById(ticket.getSessionId()).orElse(ticket);
-        String parkingSessionNo = ticket.getSessionNo() != null ? ticket.getSessionNo() : "TK" + String.format("%06d", ticket.getSessionId());
+        String ticketNo = ticket.getSessionNo() != null ? ticket.getSessionNo() : "PSN" + String.format("%06d", ticket.getSessionId());
 
         return new StaffTicketResponse(
                 ticket.getSessionId(),
-                parkingSessionNo,
+                ticketNo,
                 ticket.getBarcode(),
                 ticket.getTicketType(),
                 ticket.getVehicleType(),
@@ -407,11 +407,11 @@ public class StaffServiceImpl implements StaffService {
             entryStaffName = entryStaff.getFullName();
         }
 
-        String parkingSessionNo = ticket.getSessionNo() != null ? ticket.getSessionNo() : "TK" + String.format("%06d", ticket.getSessionId());
+        String ticketNo = ticket.getSessionNo() != null ? ticket.getSessionNo() : "PSN" + String.format("%06d", ticket.getSessionId());
 
         return new StaffTicketResponse(
                 ticket.getSessionId(),
-                parkingSessionNo,
+                ticketNo,
                 ticket.getBarcode(),
                 ticket.getTicketType(),
                 ticket.getVehicleType(),
@@ -556,9 +556,9 @@ public class StaffServiceImpl implements StaffService {
         ticket.setFeeAmount(fee);
         ticket.setPenaltyAmount(penalty);
         ticket.setViolationReason(violationReason);
-        ticket = ParkingSessionRepository.save(ticket);
+        ParkingSessionRepository.save(ticket);
 
-        String parkingSessionNo = ticket.getSessionNo() != null ? ticket.getSessionNo() : "TK" + String.format("%06d", ticket.getSessionId());
+        String ticketNo = ticket.getSessionNo() != null ? ticket.getSessionNo() : "PSN" + String.format("%06d", ticket.getSessionId());
 
         String checkoutMsg = "Xem trước thông tin vé ra thành công";
         if (penalty.compareTo(BigDecimal.ZERO) > 0) {
@@ -567,7 +567,7 @@ public class StaffServiceImpl implements StaffService {
 
         return new StaffTicketResponse(
                 ticket.getSessionId(),
-                parkingSessionNo,
+                ticketNo,
                 ticket.getBarcode(),
                 ticket.getTicketType(),
                 ticket.getVehicleType(),

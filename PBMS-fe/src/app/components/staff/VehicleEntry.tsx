@@ -171,7 +171,7 @@ export default function VehicleEntry({ selectedFloorCode }: VehicleEntryProps) {
       setOcrSteps([...steps]);
       setActiveStepIndex(2);
 
-      const apiKey = "AQ.Ab8RN6LnY0vwGKPYBjAU5y5tQ9VweO1GSFQ5IvyD_MWziUA1UQ";
+      const apiKey = GEMINI_API_KEY;
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -335,7 +335,7 @@ export default function VehicleEntry({ selectedFloorCode }: VehicleEntryProps) {
     setUploadedImagePreview(dataUrl);
 
     try {
-      const apiKey = "AQ.Ab8RN6LnY0vwGKPYBjAU5y5tQ9VweO1GSFQ5IvyD_MWziUA1UQ";
+      const apiKey = GEMINI_API_KEY;
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {

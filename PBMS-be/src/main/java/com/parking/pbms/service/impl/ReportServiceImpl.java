@@ -43,8 +43,8 @@ public class ReportServiceImpl implements ReportService {
                     if (keyword != null && !keyword.trim().isEmpty()) {
                         String kw = keyword.trim().toLowerCase();
                         boolean matchPlate = s.getPlateNoSnapshot() != null && s.getPlateNoSnapshot().toLowerCase().contains(kw);
-                        boolean matchParkingSessionNo = s.getSessionNo() != null && s.getSessionNo().toLowerCase().contains(kw);
-                        if (!matchPlate && !matchParkingSessionNo) return false;
+                        boolean matchTicketNo = s.getSessionNo() != null && s.getSessionNo().toLowerCase().contains(kw);
+                        if (!matchPlate && !matchTicketNo) return false;
                     }
 
                     // Filter by date range
@@ -151,7 +151,9 @@ public class ReportServiceImpl implements ReportService {
                 floorName,
                 entryStaffName,
                 exitStaffName,
-                session.getStatus()
+                session.getStatus(),
+                session.getEntryImage(),
+                session.getExitImage()
         );
     }
 }
