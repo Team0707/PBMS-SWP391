@@ -169,6 +169,14 @@ public class PaymentServiceImpl implements PaymentService {
                     .orElse(null);
         }
 
+        // Resolve payerAccountId from the card owner (null for guest/SINGLE sessions)
+        Integer payerAccountId = null;
+        if (ticket.getCardId() != null) {
+            payerAccountId = cardRepository.findById(ticket.getCardId())
+                    .map(card -> card.getAccountId())
+                    .orElse(null);
+        }
+
         // Tao Payment record voi trang thai PAID ngay (khong qua cong thanh toan)
         Payment payment = Payment.builder()
                 .parkingSessionId(ticket.getSessionId())
