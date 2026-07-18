@@ -7,6 +7,10 @@ import jakarta.validation.constraints.Size;
 public record VehicleRequest(
         @NotBlank(message = "Biển số xe không được để trống")
         @Size(max = 20, message = "Biển số xe tối đa 20 ký tự")
+        @Pattern(
+            regexp = "^(1[1-9]|[2-9]\\d)[A-Z1-9]([A-Z]|\\d)?[-. ]?\\d{4,5}$",
+            message = "Biển số không đúng định dạng Việt Nam (VD: 29X1-12345 hoặc 29A-1234)"
+        )
         String plateNo,
 
         @NotBlank(message = "Loại xe không được để trống")

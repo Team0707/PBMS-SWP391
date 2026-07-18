@@ -69,6 +69,13 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException exception) {
+        return ResponseEntity
+                .badRequest()
+                .body(new ApiResponse<>(400, exception.getMessage(), null));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneralException(
             Exception exception
