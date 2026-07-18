@@ -35,7 +35,10 @@ public class VehicleServiceImpl implements VehicleService {
     @Transactional
     public VehicleDto addVehicle(String username, VehicleRequest request) {
         Account account = resolveAccount(username);
-        String plateNo = request.plateNo().trim().toUpperCase();
+        String plateNo     = normalizePlateNo(request.plateNo());
+        String vehicleType = request.vehicleType().trim().toUpperCase();
+
+        crossValidatePlateAndType(plateNo, vehicleType);
 
         if (vehicleRepository.findByPlateNo(plateNo).isPresent()) {
             throw new RuntimeException("Biển số " + plateNo + " đã tồn tại trong hệ thống!");
@@ -44,7 +47,7 @@ public class VehicleServiceImpl implements VehicleService {
         Vehicle vehicle = Vehicle.builder()
                 .accountId(account.getAccountId())
                 .plateNo(plateNo)
-                .vehicleType(request.vehicleType().trim().toUpperCase())
+                .vehicleType(vehicleType)
                 .brand(request.brand())
                 .model(request.model())
                 .color(request.color())
@@ -63,7 +66,11 @@ public class VehicleServiceImpl implements VehicleService {
                 .orElseThrow(() -> new RuntimeException(
                         "Không tìm thấy phương tiện hoặc bạn không có quyền sửa phương tiện này"));
 
-        String newPlate = request.plateNo().trim().toUpperCase();
+        String newPlate    = normalizePlateNo(request.plateNo());
+        String vehicleType = request.vehicleType().trim().toUpperCase();
+
+        crossValidatePlateAndType(newPlate, vehicleType);
+
         if (!newPlate.equals(vehicle.getPlateNo())) {
             if (vehicleRepository.findByPlateNo(newPlate).isPresent()) {
                 throw new RuntimeException("Biển số " + newPlate + " đã tồn tại trong hệ thống!");
@@ -71,7 +78,7 @@ public class VehicleServiceImpl implements VehicleService {
             vehicle.setPlateNo(newPlate);
         }
 
-        vehicle.setVehicleType(request.vehicleType().trim().toUpperCase());
+        vehicle.setVehicleType(vehicleType);
         vehicle.setBrand(request.brand());
         vehicle.setModel(request.model());
         vehicle.setColor(request.color());
@@ -90,6 +97,52 @@ public class VehicleServiceImpl implements VehicleService {
 
         vehicle.setStatus("INACTIVE");
         vehicleRepository.save(vehicle);
+    }
+
+    // ── Plate normalization & cross-validation ───────────────────────────────
+    /**
+     * Loại bỏ tất cả khoảng trắng, dấu gạch ngang, dấu chấm và chuyển hoa.
+     * "32V3 - 12345" → "32V312345", "29A1-12345" → "29A112345"
+     */
+    private static String normalizePlateNo(String raw) {
+        return raw.replaceAll("[\\s.\\-]", "").toUpperCase();
+    }
+
+    /**
+     * Suy ra loại xe bắt buộc từ cấu trúc sê-ri biển số đã chuẩn hóa.
+     * Quy tắc (sau khi loại bỏ mọi dấu phân cách):
+     *   - Dài 9 ký tự, vị trí [3] là chữ số  → MOTORCYCLE  (sê-ri Chữ+Số, số 5 chữ số)
+     *   - Dài 9 ký tự, vị trí [3] là chữ cái → CAR         (sê-ri 2 Chữ, số 5 chữ số)
+     *   - Dài 8 ký tự, vị trí [3] là chữ cái → CAR         (sê-ri 2 Chữ, số 4 chữ số)
+     *   - Dài 7 ký tự                         → CAR         (sê-ri 1 Chữ, số 4 chữ số)
+     *   - Dài 8 ký tự, vị trí [3] là chữ số  → null (mơ hồ: ô tô 5 số hoặc xe máy 4 số)
+     */
+    private static String inferRequiredType(String normalized) {
+        if (normalized.length() < 7 || normalized.length() > 9) return null;
+        char ch3 = normalized.charAt(3);
+        if (normalized.length() == 7) return "CAR";
+        if (normalized.length() == 8 && Character.isLetter(ch3)) return "CAR";
+        if (normalized.length() == 9 && Character.isLetter(ch3)) return "CAR";
+        if (normalized.length() == 9 && Character.isDigit(ch3))  return "MOTORCYCLE";
+        return null; // dài 8 ký tự, vị trí [3] là chữ số → mơ hồ
+    }
+
+    /**
+     * Kiểm tra chéo giữa sê-ri biển số (đã chuẩn hóa) và loại xe.
+     * Ném RuntimeException với thông báo rõ ràng nếu không khớp.
+     */
+    private static void crossValidatePlateAndType(String normalized, String vehicleType) {
+        String required = inferRequiredType(normalized);
+        if (required == null || required.equals(vehicleType)) return;
+        if ("MOTORCYCLE".equals(required)) {
+            throw new RuntimeException(
+                    "Biển số xe máy (sê-ri Chữ+Số: " + normalized.substring(2, 4) + ") " +
+                    "không khớp với loại xe đã chọn (phải là Xe máy)");
+        } else {
+            throw new RuntimeException(
+                    "Biển số ô tô (sê-ri chỉ có Chữ: " + normalized.charAt(2) + ") " +
+                    "không khớp với loại xe đã chọn (phải là Ô tô)");
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────
