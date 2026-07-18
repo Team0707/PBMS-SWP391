@@ -44,8 +44,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         BigDecimal fee = ticket.getFeeAmount() != null ? ticket.getFeeAmount() : BigDecimal.ZERO;
-        BigDecimal penalty = ticket.getPenaltyAmount() != null ? ticket.getPenaltyAmount() : BigDecimal.ZERO;
-        BigDecimal totalAmount = fee.add(penalty);
+        // The feeAmount calculated during checkout preview already includes the penalty
+        BigDecimal totalAmount = fee;
 
         // CHỈ CHẶN KHI SỐ TIỀN BỊ ÂM
         if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
@@ -62,19 +62,40 @@ public class PaymentServiceImpl implements PaymentService {
                     .orElse(null);
         }
 
-        // 1. Lưu trạng thái PENDING vào Database trước
-        Payment payment = Payment.builder()
-                .parkingSessionId(ticket.getSessionId())
-                .payerAccountId(payerAccountId)
-                .amount(totalAmount)
-                .paymentMethod("VIETQR")
-                .paymentType("PARKING_FEE")
-                .referenceCode(description)
-                .status("PENDING")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        payment = paymentRepository.save(payment);
+        // 1. Kiểm tra xem giao dịch đã tồn tại chưa để tránh lỗi duplicate key UX_Payments_ReferenceCode
+        Payment payment = paymentRepository.findByReferenceCode(description).orElse(null);
+        if (payment != null) {
+            // Nếu đã tồn tại
+            if ("PAID".equalsIgnoreCase(payment.getStatus())) {
+                // Đã xử lý xong, trả về ngay
+                return PaymentResponse.builder()
+                        .paymentId(payment.getPaymentId())
+                        .parkingSessionId(payment.getParkingSessionId())
+                        .amount(payment.getAmount())
+                        .description(payment.getReferenceCode())
+                        .status(payment.getStatus())
+                        .build();
+            }
+            // Nếu chưa PAID, ta cập nhật lại
+            payment.setAmount(totalAmount);
+            payment.setPayerAccountId(payerAccountId);
+            payment.setUpdatedAt(LocalDateTime.now());
+            payment = paymentRepository.save(payment);
+        } else {
+            // Chưa có thì insert mới
+            payment = Payment.builder()
+                    .parkingSessionId(ticket.getSessionId())
+                    .payerAccountId(payerAccountId)
+                    .amount(totalAmount)
+                    .paymentMethod("VIETQR")
+                    .paymentType("PARKING_FEE")
+                    .referenceCode(description)
+                    .status("PENDING")
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            payment = paymentRepository.save(payment);
+        }
 
         long orderCode = payment.getPaymentId().longValue();
         String newReferenceCode = "ThanhToanVeXe_" + ticket.getSessionId() + "_" + System.currentTimeMillis();
@@ -137,8 +158,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new RuntimeException("Ticket not found: " + parkingSessionId));
 
         BigDecimal fee = ticket.getFeeAmount() != null ? ticket.getFeeAmount() : BigDecimal.ZERO;
-        BigDecimal penalty = ticket.getPenaltyAmount() != null ? ticket.getPenaltyAmount() : BigDecimal.ZERO;
-        BigDecimal totalAmount = fee.add(penalty);
+        // The feeAmount calculated during checkout preview already includes the penalty
+        BigDecimal totalAmount = fee;
 
         // Resolve payerAccountId from the card owner (null for guest/SINGLE sessions)
         Integer payerAccountId = null;

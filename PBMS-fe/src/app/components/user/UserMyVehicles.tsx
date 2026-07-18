@@ -18,22 +18,48 @@ function TypeIcon({ type }: { type: string }) {
     : <Bike className="w-4 h-4 text-emerald-500" />;
 }
 
-// ── Validation ────────────────────────────────────────────────────────────────
-const PLATE_REGEX = /^(1[1-9]|[2-9]\d)[A-Z1-9]([A-Z]|\d)?[-. ]?\d{4,5}$/;
+// ── Plate utilities ───────────────────────────────────────────────────────────
+/**
+ * Loại bỏ khoảng trắng, dấu gạch ngang, dấu chấm và chuyển hoa.
+ * "32V3 - 12345" → "32V312345"
+ */
+function normalizePlateNo(raw: string): string {
+  return raw.replace(/[\s.\-]/g, "").toUpperCase();
+}
+
+// Regex nhận diện
+const CAR_REGEX = /^[1-9]\d[A-Z]{1,2}\d{4,5}$/;
+const MOTO_REGEX = /^[1-9]\d[A-Z]\d\d{4,5}$/;
 
 function validateVehicleForm(
   form: VehicleRequest
 ): Partial<Record<keyof VehicleRequest, string>> {
   const errors: Partial<Record<keyof VehicleRequest, string>> = {};
-  const rawPlate = form.plateNo.trim();
+  const normalized = normalizePlateNo(form.plateNo);
 
-  if (!rawPlate) {
+  if (!normalized) {
     errors.plateNo = "Biển số xe không được để trống.";
-  } else if (!PLATE_REGEX.test(rawPlate)) {
-    errors.plateNo = "Biển số không đúng định dạng Việt Nam (VD: 29X1-12345 hoặc 29A-1234).";
+  } else {
+    const isCar = CAR_REGEX.test(normalized);
+    const isMoto = MOTO_REGEX.test(normalized);
+
+    if (!isCar && !isMoto) {
+      errors.plateNo = "Biển số xe không đúng định dạng Việt Nam!";
+    } else {
+      // Để giải quyết sự nhập nhằng ở các biển 8 ký tự (VD: 32X12345 vừa khớp Ô tô 5 số, vừa khớp Xe máy 4 số),
+      // ưu tiên nhận diện là Ô tô theo logic biển 5 số hiện hành.
+      const strictCar = isCar && (!isMoto || normalized.length === 8);
+      const strictMoto = isMoto && (!isCar || normalized.length === 9);
+
+      if (form.vehicleType === "CAR" && !strictCar) {
+        errors.vehicleType = "Biển số này thuộc về Xe máy, không khớp với loại xe đã chọn!";
+      } else if (form.vehicleType === "MOTORCYCLE" && !strictMoto) {
+        errors.vehicleType = "Biển số này thuộc về Ô tô, không khớp với loại xe đã chọn!";
+      }
+    }
   }
 
-  if (!["MOTORCYCLE", "CAR"].includes(form.vehicleType)) {
+  if (!["MOTORCYCLE", "CAR"].includes(form.vehicleType) && !errors.vehicleType) {
     errors.vehicleType = "Vui lòng chọn loại xe hợp lệ.";
   }
   if (form.brand && form.brand.length > 50) {
@@ -47,7 +73,6 @@ function validateVehicleForm(
   }
 
   return errors;
-  
 }
 
 // ── AddEditModal ──────────────────────────────────────────────────────────────
@@ -86,7 +111,7 @@ function VehicleFormModal({
     setLoading(true);
     setApiErr("");
     try {
-      await onSave({ ...form, plateNo: form.plateNo.trim().toUpperCase() });
+      await onSave({ ...form, plateNo: normalizePlateNo(form.plateNo) });
     } catch (e: any) {
       setApiErr(e.message || "Có lỗi xảy ra.");
     } finally {

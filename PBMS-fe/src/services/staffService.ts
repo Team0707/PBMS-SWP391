@@ -25,7 +25,7 @@ export interface StaffCheckInRequest {
 }
 
 export interface StaffCheckOutRequest {
-  ticketNoOrQrToken: string;
+  parkingSessionNoOrQrToken: string;
   floorCode?: string;
   paymentMethod?: "CASH" | "VNPAY";
   exitImage?: string;
@@ -193,8 +193,8 @@ export const staffService = {
     return result.data;
   },
 
-  async previewCheckOut(ticketNoOrQrToken: string): Promise<StaffTicketResponse> {
-    const response = await authFetch(`${API_URL}/staff/check-out-preview?ticketNoOrQrToken=${encodeURIComponent(ticketNoOrQrToken)}`);
+  async previewCheckOut(parkingSessionNoOrQrToken: string): Promise<StaffTicketResponse> {
+    const response = await authFetch(`${API_URL}/staff/check-out-preview?parkingSessionNoOrQrToken=${encodeURIComponent(parkingSessionNoOrQrToken)}`);
     const result: ApiResponse<StaffTicketResponse> = await safeJson(response);
     if (!response.ok) throw new Error(result.message || "Xem trước thông tin xe ra thất bại.");
     return result.data;
