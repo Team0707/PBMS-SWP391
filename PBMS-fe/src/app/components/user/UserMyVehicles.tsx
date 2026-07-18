@@ -18,6 +18,38 @@ function TypeIcon({ type }: { type: string }) {
     : <Bike className="w-4 h-4 text-emerald-500" />;
 }
 
+// ── Validation ────────────────────────────────────────────────────────────────
+const PLATE_REGEX = /^(1[1-9]|[2-9]\d)[A-Z1-9]([A-Z]|\d)?[-. ]?\d{4,5}$/;
+
+function validateVehicleForm(
+  form: VehicleRequest
+): Partial<Record<keyof VehicleRequest, string>> {
+  const errors: Partial<Record<keyof VehicleRequest, string>> = {};
+  const rawPlate = form.plateNo.trim();
+
+  if (!rawPlate) {
+    errors.plateNo = "Biển số xe không được để trống.";
+  } else if (!PLATE_REGEX.test(rawPlate)) {
+    errors.plateNo = "Biển số không đúng định dạng Việt Nam (VD: 29X1-12345 hoặc 29A-1234).";
+  }
+
+  if (!["MOTORCYCLE", "CAR"].includes(form.vehicleType)) {
+    errors.vehicleType = "Vui lòng chọn loại xe hợp lệ.";
+  }
+  if (form.brand && form.brand.length > 50) {
+    errors.brand = "Hãng xe tối đa 50 ký tự.";
+  }
+  if (form.model && form.model.length > 50) {
+    errors.model = "Model xe tối đa 50 ký tự.";
+  }
+  if (form.color && form.color.length > 30) {
+    errors.color = "Màu xe tối đa 30 ký tự.";
+  }
+
+  return errors;
+  
+}
+
 // ── AddEditModal ──────────────────────────────────────────────────────────────
 function VehicleFormModal({
   initial,
@@ -36,19 +68,27 @@ function VehicleFormModal({
     color: initial?.color ?? "",
   });
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [apiErr, setApiErr] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof VehicleRequest, string>>>({});
 
-  const F = (k: keyof VehicleRequest, v: string) =>
+  const F = (k: keyof VehicleRequest, v: string) => {
     setForm((p) => ({ ...p, [k]: v }));
+    if (fieldErrors[k]) setFieldErrors((e) => ({ ...e, [k]: "" }));
+  };
 
   const handleSubmit = async () => {
-    if (!form.plateNo.trim()) { setErr("Vui lòng nhập biển số xe."); return; }
+    const errors = validateVehicleForm(form);
+    if (Object.values(errors).some(Boolean)) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
     setLoading(true);
-    setErr("");
+    setApiErr("");
     try {
       await onSave({ ...form, plateNo: form.plateNo.trim().toUpperCase() });
     } catch (e: any) {
-      setErr(e.message || "Có lỗi xảy ra.");
+      setApiErr(e.message || "Có lỗi xảy ra.");
     } finally {
       setLoading(false);
     }
@@ -69,24 +109,31 @@ function VehicleFormModal({
 
         {/* Body */}
         <div className="p-5 space-y-3">
-          {err && (
+          {apiErr && (
             <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-              {err}
+              {apiErr}
             </div>
           )}
 
+          {/* Biển số xe */}
           <div>
             <label className="block text-xs text-gray-600 mb-1">
               Biển số xe <span className="text-red-500">*</span>
             </label>
             <input
-              className="w-full h-[36px] border border-gray-300 rounded px-3 text-sm uppercase focus:outline-none focus:border-blue-400"
+              className={`w-full h-[36px] border rounded px-3 text-sm uppercase focus:outline-none focus:border-blue-400 ${
+                fieldErrors.plateNo ? "border-red-400 bg-red-50" : "border-gray-300"
+              }`}
               placeholder="VD: 29X1-12345"
               value={form.plateNo}
               onChange={(e) => F("plateNo", e.target.value.toUpperCase())}
             />
+            {fieldErrors.plateNo && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.plateNo}</p>
+            )}
           </div>
 
+          {/* Loại xe */}
           <div>
             <label className="block text-xs text-gray-600 mb-1">
               Loại xe <span className="text-red-500">*</span>
@@ -111,37 +158,57 @@ function VehicleFormModal({
                 </label>
               ))}
             </div>
+            {fieldErrors.vehicleType && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.vehicleType}</p>
+            )}
           </div>
 
+          {/* Hãng xe + Model */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-600 mb-1">Hãng xe</label>
               <input
-                className="w-full h-[36px] border border-gray-300 rounded px-3 text-sm focus:outline-none focus:border-blue-400"
+                className={`w-full h-[36px] border rounded px-3 text-sm focus:outline-none focus:border-blue-400 ${
+                  fieldErrors.brand ? "border-red-400 bg-red-50" : "border-gray-300"
+                }`}
                 placeholder="VD: Honda, Yamaha..."
                 value={form.brand}
                 onChange={(e) => F("brand", e.target.value)}
               />
+              {fieldErrors.brand && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.brand}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs text-gray-600 mb-1">Model</label>
               <input
-                className="w-full h-[36px] border border-gray-300 rounded px-3 text-sm focus:outline-none focus:border-blue-400"
+                className={`w-full h-[36px] border rounded px-3 text-sm focus:outline-none focus:border-blue-400 ${
+                  fieldErrors.model ? "border-red-400 bg-red-50" : "border-gray-300"
+                }`}
                 placeholder="VD: Wave, Vision..."
                 value={form.model}
                 onChange={(e) => F("model", e.target.value)}
               />
+              {fieldErrors.model && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.model}</p>
+              )}
             </div>
           </div>
 
+          {/* Màu xe */}
           <div>
             <label className="block text-xs text-gray-600 mb-1">Màu xe</label>
             <input
-              className="w-full h-[36px] border border-gray-300 rounded px-3 text-sm focus:outline-none focus:border-blue-400"
+              className={`w-full h-[36px] border rounded px-3 text-sm focus:outline-none focus:border-blue-400 ${
+                fieldErrors.color ? "border-red-400 bg-red-50" : "border-gray-300"
+              }`}
               placeholder="VD: Đen, Trắng, Đỏ..."
               value={form.color}
               onChange={(e) => F("color", e.target.value)}
             />
+            {fieldErrors.color && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.color}</p>
+            )}
           </div>
         </div>
 
